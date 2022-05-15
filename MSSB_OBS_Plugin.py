@@ -10,7 +10,8 @@ color_source1 = "Scoreboard Base"
 color_default = 0xFF4fee4f
 
 def script_defaults (settings):
-    S.obs_data_set_int(settings, "scoreboard_base_color", color_default)
+    S.obs_data_set_int(settings, "_scoreboard_base_color", color_default)
+    S.obs_data_set_string(settings, "_menu", "HUD Location")
 
 class HUD:
     def __init__(self):
@@ -70,7 +71,7 @@ def script_update(settings):
     vpositionslider = S.obs_data_get_int(settings, "_vslider")
 
     source = S.obs_get_source_by_name(color_source1)
-    scoreboard_base_color = S.obs_data_get_int(settings, "scoreboard_base_color")
+    scoreboard_base_color = S.obs_data_get_int(settings, "_scoreboard_base_color")
     S.obs_data_set_int(settings, "color", scoreboard_base_color)
     S.obs_source_update(source, settings)
 
@@ -89,32 +90,50 @@ def script_description():
 def script_properties():  # ui
     props = S.obs_properties_create()
 
-    p = S.obs_properties_add_list(props, "selection", "Choose", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
-    S.obs_property_list_add_string(p, "Location", "location")
-    S.obs_property_list_add_string(p, "Stats", "stats")
+    # Main menuing list
+    menu_list = S.obs_properties_add_list(props, "_menu", "Choose", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+    S.obs_property_list_add_string(menu_list, "HUD Location", "location")
+    S.obs_property_list_add_string(menu_list, "Colors", "color")
+    S.obs_property_list_add_string(menu_list, "Stats", "stats")
+    S.obs_property_list_add_string(menu_list, "Canvas Size", "size")
 
+    # Location Properties
     S.obs_properties_add_button(props, "button", "Add color source", add_pressed)
     S.obs_properties_add_int_slider(props, "_hslider", "Horizontal Location", 0, 1000, 1)
     S.obs_properties_add_int_slider(props, "_vslider", "Vertical Location", 0, 1000, 1)
     bool = S.obs_properties_add_bool(props, "_bool", "_bool:")
-    S.obs_properties_add_button(props, "button2", "Refresh", refresh_pressed)
-    S.obs_properties_add_color(props, "scoreboard_base_color", "")
+    S.obs_properties_add_button(props, "_updatelocation", "Update Location", refresh_pressed)
+
+    # Color
+    S.obs_properties_add_color(props, "_scoreboard_base_color", "Scoreboard Base")
+
+    # Canvas Size Properties
+    canvas_size_list = S.obs_properties_add_list(props, "_canvas_size", "Resolution", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+    S.obs_property_list_add_string(canvas_size_list, "720p", "small")
+    S.obs_property_list_add_string(canvas_size_list, "1080p", "medium")
+    S.obs_property_set_visible(canvas_size_list, False)
 
     S.obs_property_set_visible(bool, False)
-    S.obs_property_set_modified_callback(p, callback)
+    S.obs_property_set_modified_callback(menu_list, menu_callback)
 
     return props
 
 
-def callback(props, prop, settings):
+def menu_callback(props, prop, settings):
     # Return true is needed for the callback function to complete properly
-    selection = S.obs_data_get_string(settings, "selection")
-    print(selection, "Selection update")
+    menu_list_selection = S.obs_data_get_string(settings, "_menu")
+    print(menu_list_selection, "Selection update")
     boolprop = S.obs_properties_get(props, "_bool")
 
-    if str(selection) == "location":
-        S.obs_property_set_visible(boolprop, True)
-        return True
-    else:
-        S.obs_property_set_visible(boolprop, False)
-        return True
+    # Location
+    S.obs_property_set_visible(S.obs_properties_get(props, "_hslider"),  menu_list_selection == "location")
+    S.obs_property_set_visible(S.obs_properties_get(props, "_vslider"), menu_list_selection == "location")
+    S.obs_property_set_visible(S.obs_properties_get(props, "_updatelocation"), menu_list_selection == "location")
+
+    # Color
+    S.obs_property_set_visible(S.obs_properties_get(props, "_scoreboard_base_color"), menu_list_selection == "color")
+
+    # Canvas Size
+    S.obs_property_set_visible(S.obs_properties_get(props, "_canvas_size"), menu_list_selection == "size")
+
+    return True
