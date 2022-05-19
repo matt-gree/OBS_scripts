@@ -1,6 +1,7 @@
 import obspython as S
 import os
 import json
+import platform as plt
 
 symbol_font = S.obs_data_create()
 S.obs_data_set_string(symbol_font, "face", "DejaVu Sans Mono")
@@ -37,9 +38,16 @@ S.obs_data_set_string(captain_font, "face", "Trebuchet MS")
 S.obs_data_set_int(captain_font, "flags", 1)
 S.obs_data_set_int(captain_font, "size", 26)
 
+#Windows only
+chem_font = S.obs_data_create()
+S.obs_data_set_string(chem_font, "face", "DejaVu Sans Mono")
+S.obs_data_set_int(chem_font, "flags", 1)
+S.obs_data_set_int(chem_font, "size", 36)
+
 
 outline_color = 0xFFdddddd
 inset_color = 0xFF302a28
+star_chance_color = 0xFF2d9ac9
 
 # Captain colors
 mario_color = 0xFF0303ed
@@ -90,7 +98,7 @@ def script_defaults(settings):
     S.obs_data_set_obj(settings, "_star_chance_font", default_font)
 
     S.obs_data_set_string(settings, "_canvas_resolution", "medium")
-
+    
 class HUD:
     def __init__(self):
         # set the intitial position of to be 0,0
@@ -144,6 +152,7 @@ class HUD:
         self.count_base_xlocation = 0
 
         self.max_font_size = 0
+        self.platform = None
 
     def location_assignment(self):
 
@@ -190,6 +199,8 @@ class HUD:
 
             S.obs_data_set_int(captain_font, "size", 26)
 
+            S.obs_data_set_int(chem_font, "size", 24)
+
             self.max_font_size = 32
 
         elif str(graphics.canvas_height) == "1080":
@@ -207,124 +218,182 @@ class HUD:
 
             S.obs_data_set_int(captain_font, "size", int(26 * 1.5))
 
+            S.obs_data_set_int(chem_font, "size", int(24 * 1.5))
+
             self.max_font_size = 48
 
         current_scene = S.obs_frontend_get_current_scene()
         scene = S.obs_scene_from_source(current_scene)
-        settings = S.obs_data_create()
 
-        props = S.obs_properties_create()
+        if str(plt.platform()).lower()[0] == 'm':
+            self.platform = 'MacOS'
+        elif str(plt.platform()).lower()[0] == 'w':
+            self.platform = 'Windows'
+        else:
+            self.platform = 'Unknown'
 
-        group = S.obs_scene_add_group2(scene, "HUD", signal=True)
+        group = S.obs_scene_add_group(scene, "HUD")
 
         # HUD Text Boxes
         # Scene add must be called immediately after to avoid OBS crash
         # Crash issue was probably caused by not making a new settings every source
+        # Text boxes with symbols must be made to gdi+ sources on Windows
+        # Other if statements should probably be removed
 
         # Inning
         settings = S.obs_data_create()
-        Inning_Text = S.obs_source_create("text_ft2_source", 'inning_text', settings, None)
+        if self.platform == 'MacOS':
+            Inning_Text = S.obs_source_create("text_ft2_source", 'inning_text', settings, None)
+        else:
+            Inning_Text = S.obs_source_create("text_ft2_source", 'inning_text', settings, None)
         S.obs_scene_add(scene, Inning_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "inning_text"))
 
         # Halfinning
         settings = S.obs_data_create()
-        Halfinning_Text = S.obs_source_create("text_ft2_source", 'halfinning_text', settings, None)
+        if self.platform == 'MacOS':
+            Halfinning_Text = S.obs_source_create("text_ft2_source", 'halfinning_text', settings, None)
+        else:
+            Halfinning_Text = S.obs_source_create("text_gdiplus", 'halfinning_text', settings, None)
         S.obs_scene_add(scene, Halfinning_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "halfinning_text"))
 
         # Count
         settings = S.obs_data_create()
-        Count_Text = S.obs_source_create("text_ft2_source", 'count_text', settings, None)
+        if self.platform == 'MacOS':
+            Count_Text = S.obs_source_create("text_ft2_source", 'count_text', settings, None)
+        else:
+            Count_Text = S.obs_source_create("text_ft2_source", 'count_text', settings, None)
         S.obs_scene_add(scene, Count_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "count_text"))
 
         # Outs
         settings = S.obs_data_create()
-        Outs_Text = S.obs_source_create("text_ft2_source", 'outs_text', settings, None)
+        if self.platform == 'MacOS':
+            Outs_Text = S.obs_source_create("text_ft2_source", 'outs_text', settings, None)
+        else:
+            Outs_Text = S.obs_source_create("text_gdiplus", 'outs_text', settings, None)
         S.obs_scene_add(scene, Outs_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "outs_text"))
 
         # Away Player Name
         settings = S.obs_data_create()
-        Away_Player_Text = S.obs_source_create("text_ft2_source", 'away_player_text', settings, None)
+        if self.platform == 'MacOS':
+            Away_Player_Text = S.obs_source_create("text_ft2_source", 'away_player_text', settings, None)
+        else:
+            Away_Player_Text = S.obs_source_create("text_ft2_source", 'away_player_text', settings, None)
         S.obs_scene_add(scene, Away_Player_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "away_player_text"))
 
         # Away Captain
         settings = S.obs_data_create()
-        Away_Captain_Text = S.obs_source_create("text_ft2_source", 'away_captain_text', settings, None)
+        if self.platform == 'MacOS':
+            Away_Captain_Text = S.obs_source_create("text_ft2_source", 'away_captain_text', settings, None)
+        else:
+            Away_Captain_Text = S.obs_source_create("text_ft2_source", 'away_captain_text', settings, None)
         S.obs_scene_add(scene, Away_Captain_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "away_captain_text"))
 
         # Away Score
         settings = S.obs_data_create()
-        Away_Score_Text = S.obs_source_create("text_ft2_source", 'away_score_text', settings, None)
+        if self.platform == 'MacOS':
+            Away_Score_Text = S.obs_source_create("text_ft2_source", 'away_score_text', settings, None)
+        else:
+            Away_Score_Text = S.obs_source_create("text_ft2_source", 'away_score_text', settings, None)
         S.obs_scene_add(scene, Away_Score_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "away_score_text"))
 
         # Away Stars
         settings = S.obs_data_create()
-        Away_Stars_Text = S.obs_source_create("text_ft2_source", 'away_stars_text', settings, None)
+        if self.platform == 'MacOS':
+            Away_Stars_Text = S.obs_source_create("text_ft2_source", 'away_stars_text', settings, None)
+        else:
+            Away_Stars_Text = S.obs_source_create("text_gdiplus", 'away_stars_text', settings, None)
         S.obs_scene_add(scene, Away_Stars_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "away_stars_text"))
 
         # Home Player Name
         settings = S.obs_data_create()
-        Home_Player_Text = S.obs_source_create("text_ft2_source", 'home_player_text', settings, None)
+        if self.platform == 'MacOS':
+            Home_Player_Text = S.obs_source_create("text_ft2_source", 'home_player_text', settings, None)
+        else:
+            Home_Player_Text = S.obs_source_create("text_ft2_source", 'home_player_text', settings, None)
         S.obs_scene_add(scene, Home_Player_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "home_player_text"))
 
         # Home Captain
         settings = S.obs_data_create()
-        Home_Captain_Text = S.obs_source_create("text_ft2_source", 'home_captain_text', settings, None)
+        if self.platform == 'MacOS':
+            Home_Captain_Text = S.obs_source_create("text_ft2_source", 'home_captain_text', settings, None)
+        else:
+            Home_Captain_Text = S.obs_source_create("text_ft2_source", 'home_captain_text', settings, None)
         S.obs_scene_add(scene, Home_Captain_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "home_captain_text"))
 
         # Home Score
         settings = S.obs_data_create()
-        Home_Score_Text = S.obs_source_create("text_ft2_source", 'home_score_text', settings, None)
+        if self.platform == 'MacOS':
+            Home_Score_Text = S.obs_source_create("text_ft2_source", 'home_score_text', settings, None)
+        else:
+            Home_Score_Text = S.obs_source_create("text_ft2_source", 'home_score_text', settings, None)
         S.obs_scene_add(scene, Home_Score_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "home_score_text"))
 
         # Home Stars
         settings = S.obs_data_create()
-        Home_Stars_Text = S.obs_source_create("text_ft2_source", 'home_stars_text', settings, None)
+        if self.platform == 'MacOS':
+            Home_Stars_Text = S.obs_source_create("text_ft2_source", 'home_stars_text', settings, None)
+        else:
+            Home_Stars_Text = S.obs_source_create("text_gdiplus", 'home_stars_text', settings, None)
         S.obs_scene_add(scene, Home_Stars_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "home_stars_text"))
 
         # 1st Base
         settings = S.obs_data_create()
-        Runner_1b_Text = S.obs_source_create("text_ft2_source", 'runner_1b_text', settings, None)
+        if self.platform == 'MacOS':
+            Runner_1b_Text = S.obs_source_create("text_ft2_source", 'runner_1b_text', settings, None)
+        else:
+            Runner_1b_Text = S.obs_source_create("text_gdiplus", 'runner_1b_text', settings, None)
         S.obs_scene_add(scene, Runner_1b_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "runner_1b_text"))
 
         # 2nd Base
         settings = S.obs_data_create()
-        Runner_2b_Text = S.obs_source_create("text_ft2_source", 'runner_2b_text', settings, None)
+        if self.platform == 'MacOS':
+            Runner_2b_Text = S.obs_source_create("text_ft2_source", 'runner_2b_text', settings, None)
+        else:
+            Runner_2b_Text = S.obs_source_create("text_gdiplus", 'runner_2b_text', settings, None)
         S.obs_scene_add(scene, Runner_2b_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "runner_2b_text"))
 
         # 3rd Base
         settings = S.obs_data_create()
-        Runner_3b_Text = S.obs_source_create("text_ft2_source", 'runner_3b_text', settings, None)
+        if self.platform == 'MacOS':
+            Runner_3b_Text = S.obs_source_create("text_ft2_source", 'runner_3b_text', settings, None)
+        else:
+            Runner_3b_Text = S.obs_source_create("text_gdiplus", 'runner_3b_text', settings, None)
         S.obs_scene_add(scene, Runner_3b_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "runner_3b_text"))
 
         # Chem
         settings = S.obs_data_create()
-        Chem_Text = S.obs_source_create("text_ft2_source", 'chem_text', settings, None)
+        if self.platform == 'MacOS':
+            Chem_Text = S.obs_source_create("text_ft2_source", 'chem_text', settings, None)
+        else:
+            Chem_Text = S.obs_source_create("text_gdiplus", 'chem_text', settings, None)
         S.obs_scene_add(scene, Chem_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "chem_text"))
 
         # Star Chance
         settings = S.obs_data_create()
-        Star_Chance_Text = S.obs_source_create("text_ft2_source", 'star_chance_text', settings, None)
+        if self.platform == 'MacOS':
+            Star_Chance_Text = S.obs_source_create("text_ft2_source", 'star_chance_text', settings, None)
+        else:
+            Star_Chance_Text = S.obs_source_create("text_ft2_source", 'star_chance_text', settings, None)
         S.obs_scene_add(scene, Star_Chance_Text)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "star_chance_text"))
 
         # HUD Graphics
-
         # Away
         settings = S.obs_data_create()
         S.obs_data_set_int(settings, "width", self.player_base_width)
@@ -393,6 +462,30 @@ class HUD:
         scoreboard_base = S.obs_source_create("color_source", 'scoreboard_base', settings, None)
         S.obs_scene_add(scene, scoreboard_base)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "scoreboard_base"))
+
+        # Star Chance Inset
+        settings = S.obs_data_create()
+        S.obs_data_set_int(settings, "width", self.player_base_width)
+        S.obs_data_set_int(settings, "height", S.obs_data_get_int(default_font, "size")+self.scoreboard_padding)
+        S.obs_data_set_int(settings, "color", star_chance_color)
+        scoreboard_base = S.obs_source_create("color_source", 'star_chance_inset', settings, None)
+        S.obs_scene_add(scene, scoreboard_base)
+        S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "star_chance_inset"))
+        position = S.vec2()
+        S.vec2_set(position, self.scoreboard_base_width, self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'star_chance_inset'), position)
+
+        # Star Chance Base
+        settings = S.obs_data_create()
+        S.obs_data_set_int(settings, "width", self.player_base_width + 2*self.scoreboard_padding)
+        S.obs_data_set_int(settings, "height", S.obs_data_get_int(default_font, "size") + 3*self.scoreboard_padding)
+        S.obs_data_set_int(settings, "color", outline_color)
+        scoreboard_base = S.obs_source_create("color_source", 'star_chance_base', settings, None)
+        S.obs_scene_add(scene, scoreboard_base)
+        S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "star_chance_base"))
+        position = S.vec2()
+        S.vec2_set(position, self.scoreboard_base_width - self.scoreboard_padding, 0)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'star_chance_base'), position)
 
     def update_text(self):
         current_scene = S.obs_frontend_get_current_scene()
@@ -564,8 +657,12 @@ class HUD:
         settings = S.obs_data_create()
         if self.star_chance == "1":
             star_chance_string = "Star Chance!"
+            S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(scene, 'star_chance_base'), True)
+            S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(scene, 'star_chance_inset'), True)
         else:
             star_chance_string = ""
+            S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(scene, 'star_chance_base'), False)
+            S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(scene, 'star_chance_inset'), False)
         S.obs_data_set_string(settings, "text", star_chance_string)
         S.obs_source_update(source, settings)
         S.obs_data_release(settings)
@@ -581,6 +678,9 @@ class HUD:
         print(len(str(self.inning)))
         if len(str(self.inning)) == 1:
             single_digit_width = S.obs_source_get_width(S.obs_get_source_by_name("inning_text"))
+
+        if self.platform != "MacOS":
+            S.obs_data_set_obj(globalsettings, "_chem_font", chem_font)
 
         # Text Resizing
         if len(str(self.awayplayer)) != 0:
@@ -686,6 +786,7 @@ class HUD:
         S.obs_source_update(source, settings)
 
         # Text Locations
+        # Text sources using gdi+ on windows must be allgined different than others
         # Away Player (Constant Location)
         position = S.vec2()
         S.vec2_zero(position)
@@ -704,7 +805,10 @@ class HUD:
 
         # Away Stars (Variable Location)
         S.vec2_zero(position)
-        S.vec2_set(position, self.home_base_xlocation - 2 * self.scoreboard_padding - S.obs_source_get_width(S.obs_get_source_by_name("away_stars_text")), self.scoreboard_base_height -  S.obs_data_get_int(symbol_font, "size") - 2 * self.scoreboard_padding)
+        if self.platform == 'MacOS':
+            S.vec2_set(position, self.home_base_xlocation - 2 * self.scoreboard_padding - S.obs_source_get_width(S.obs_get_source_by_name("away_stars_text")), self.scoreboard_base_height -  S.obs_data_get_int(symbol_font, "size") - 2 * self.scoreboard_padding)
+        else:
+            S.vec2_set(position, self.home_base_xlocation - 2 * self.scoreboard_padding - S.obs_source_get_width(S.obs_get_source_by_name("away_stars_text")), self.scoreboard_base_height - S.obs_data_get_int(symbol_font, "size") - self.scoreboard_padding)
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_stars_text'), position)
 
         # Home Player (Constant Location)
@@ -724,7 +828,10 @@ class HUD:
 
         # Home Stars (Variable Location)
         S.vec2_zero(position)
-        S.vec2_set(position, self.inning_base_xlocation - 2 * self.scoreboard_padding - S.obs_source_get_width(S.obs_get_source_by_name("home_stars_text")), self.scoreboard_base_height -  S.obs_data_get_int(symbol_font, "size") - 2 * self.scoreboard_padding)
+        if self.platform == 'MacOS':
+            S.vec2_set(position, self.inning_base_xlocation - 2 * self.scoreboard_padding - S.obs_source_get_width(S.obs_get_source_by_name("home_stars_text")), self.scoreboard_base_height -  S.obs_data_get_int(symbol_font, "size") - 2 * self.scoreboard_padding)
+        else:
+            S.vec2_set(position, self.inning_base_xlocation - 2 * self.scoreboard_padding - S.obs_source_get_width(S.obs_get_source_by_name("home_stars_text")), self.scoreboard_base_height - S.obs_data_get_int(symbol_font, "size") - self.scoreboard_padding)
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_stars_text'), position)
 
         inning_centered_location = self.inning_base_xlocation + (self.inning_base_width - (len(str(self.inning)) * single_digit_width))/2
@@ -741,27 +848,39 @@ class HUD:
 
         # 2nd Base (Centered Location)
         S.vec2_zero(position)
-        S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2), 0)
+        if self.platform == 'MacOS':
+            S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2), 0)
+        else:
+            S.vec2_set(position, self.bases_base_xlocation + ((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text"))) / 2), self.scoreboard_padding)
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_2b_text'), position)
 
         # 1st Base (Off-Centered Location)
         S.vec2_zero(position)
-        S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2) + (S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6), S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6)
+        if self.platform == 'MacOS':
+            S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2) + (S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6), S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6)
+        else:
+            S.vec2_set(position, self.bases_base_xlocation + ((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text"))) / 2) + (S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text")) / 1.6), self.scoreboard_padding + S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text")) / 1.6)
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_1b_text'), position)
 
         # 3rd Base (Off-Centered Location)
         S.vec2_zero(position)
-        S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2) - (S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6), S.obs_source_get_width(S.obs_get_source_by_name("runner_3b_text"))/1.6)
+        if self.platform == 'MacOS':
+            S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2) - (S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6), S.obs_source_get_width(S.obs_get_source_by_name("runner_3b_text"))/1.6)
+        else:
+            S.vec2_set(position, self.bases_base_xlocation + ((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text"))) / 2) - (S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text")) / 1.6), self.scoreboard_padding + S.obs_source_get_width(S.obs_get_source_by_name("runner_3b_text")) / 1.6)
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_3b_text'), position)
 
         # Chem (Centered Location)
         S.vec2_zero(position)
-        S.vec2_set(position, self.bases_base_xlocation + ((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("chem_text")))/2), self.scoreboard_base_height - S.obs_data_get_int(smaller_font, "size") - 2 * self.scoreboard_padding)
+        S.vec2_set(position, self.bases_base_xlocation + ((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("chem_text")))/2), self.scoreboard_base_height - S.obs_data_get_int(smaller_font, "size") - 2.5 * self.scoreboard_padding)
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'chem_text'), position)
 
         # Outs (Centered Location)
         S.vec2_zero(position)
-        S.vec2_set(position, self.count_base_xlocation + ((self.count_base_width - S.obs_source_get_width(S.obs_get_source_by_name("outs_text")))/2), self.scoreboard_base_height - S.obs_data_get_int(symbol_font, "size")- self.scoreboard_padding)
+        if self.platform == 'MacOS':
+            S.vec2_set(position, self.count_base_xlocation + ((self.count_base_width - S.obs_source_get_width(S.obs_get_source_by_name("outs_text")))/2), self.scoreboard_base_height - S.obs_data_get_int(symbol_font, "size")- self.scoreboard_padding)
+        else:
+            S.vec2_set(position, self.count_base_xlocation + ((self.count_base_width - S.obs_source_get_width(S.obs_get_source_by_name("outs_text"))) / 2), self.scoreboard_base_height - S.obs_data_get_int(symbol_font, "size"))
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'outs_text'), position)
 
         # Count (Centered Location)
@@ -771,7 +890,7 @@ class HUD:
 
         # Star Chance (Constant Location)
         S.vec2_zero(position)
-        S.vec2_set(position, self.scoreboard_padding, self.scoreboard_base_height)
+        S.vec2_set(position, self.scoreboard_base_width+self.scoreboard_padding, self.scoreboard_padding)
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'star_chance_text'), position)
 
 
@@ -940,11 +1059,11 @@ class HUD:
             return bowserjr_color
         return inset_color
 
-graphics = HUD()
-
 def script_load(settings):
     global pause_HUD_bool
     pause_HUD_bool = False
+    global graphics
+    graphics = HUD()
 
 def script_tick(seconds):
     if pause_HUD_bool == False:
@@ -992,7 +1111,7 @@ def remove_pressed(props, prop):
     S.obs_source_remove(S.obs_get_source_by_name("HUD"))
 
 def script_description():
-    return "Better Mario Baseball Game HUD \nBy MattGree and PeacockSlayer (and Rio Dev team)"
+    return "Custom Mario Baseball Game HUD \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!"
 
 
 def script_properties():  # ui
@@ -1063,8 +1182,7 @@ def script_properties():  # ui
 def OS_callback(props, prop, settings):
     if S.obs_data_get_string(settings, "_OS_list") == "windows":
         current_path = str(os.path.realpath(__file__))
-        HUD_Path = current_path.split("\"", 3)[0] + "\"" + current_path.split("\"", 3)[1] + "\"" + current_path.split("\"", 3)[2] + "\"Documents\"Project Rio\"HudFiles\"decoded.hud.json"
-        S.obs_data_set_string(settings, "_path", HUD_Path)
+        HUD_Path = current_path.split("\\")[0] + "/" + current_path.split("\\")[1] + "/" + current_path.split("\\")[2] + "/Documents/Project Rio/HudFiles/decoded.hud.json"
         S.obs_data_set_string(settings, "_path", HUD_Path)
     elif S.obs_data_get_string(settings, "_OS_list") == "macOS":
         current_path = str(os.path.realpath(__file__))
