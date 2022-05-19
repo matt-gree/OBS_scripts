@@ -2,63 +2,86 @@ import obspython as S
 import os
 import json
 
-canvas_width = 1280
-canvas_height = 720
-HUD_width = 550
-HUD_height = 80
-
 symbol_font = S.obs_data_create()
 S.obs_data_set_string(symbol_font, "face", "DejaVu Sans Mono")
 S.obs_data_set_int(symbol_font, "flags", 1)
 S.obs_data_set_int(symbol_font, "size", 32)
 
-star_font = S.obs_data_create()
-S.obs_data_set_string(star_font, "face", "Heiti TC")
-S.obs_data_set_int(star_font, "flags", 1)
-S.obs_data_set_int(star_font, "size", 24)
-
 small_symbol_font = S.obs_data_create()
 S.obs_data_set_string(small_symbol_font, "face", "DejaVu Sans Mono")
 S.obs_data_set_int(small_symbol_font, "flags", 1)
-S.obs_data_set_int(small_symbol_font, "size", 20)
+S.obs_data_set_int(small_symbol_font, "size", 24)
 
 smaller_font = S.obs_data_create()
-S.obs_data_set_string(smaller_font, "face", "Helvetica")
-S.obs_data_set_int(smaller_font, "flags", 0)
-S.obs_data_set_int(smaller_font, "size", 24)
+S.obs_data_set_string(smaller_font, "face", "Trebuchet MS")
+S.obs_data_set_int(smaller_font, "flags", 1)
+S.obs_data_set_int(smaller_font, "size", 22)
 
 default_font = S.obs_data_create()
-S.obs_data_set_string(default_font, "face", "Helvetica")
-S.obs_data_set_int(default_font, "flags", 0)
+S.obs_data_set_string(default_font, "face", "Trebuchet MS")
+S.obs_data_set_int(default_font, "flags", 1)
 S.obs_data_set_int(default_font, "size", 32)
 
+away_player_font = S.obs_data_create()
+S.obs_data_set_string(away_player_font, "face", "Trebuchet MS")
+S.obs_data_set_int(away_player_font, "flags", 1)
+S.obs_data_set_int(away_player_font, "size", 32)
 
-color_source1 = "Scoreboard Base"
+home_player_font = S.obs_data_create()
+S.obs_data_set_string(home_player_font, "face", "Trebuchet MS")
+S.obs_data_set_int(home_player_font, "flags", 1)
+S.obs_data_set_int(home_player_font, "size", 32)
 
-color_default = 0xFF944e28
+captain_font = S.obs_data_create()
+S.obs_data_set_string(captain_font, "face", "Trebuchet MS")
+S.obs_data_set_int(captain_font, "flags", 1)
+S.obs_data_set_int(captain_font, "size", 26)
+
+
+outline_color = 0xFFdddddd
+inset_color = 0xFF302a28
+
+# Captain colors
+mario_color = 0xFF0303ed
+luigi_color = 0xFF148d14
+yoshi_color = 0xFF35b238
+birdo_color = 0xFFc364ec
+peach_color = 0xFFc18eff
+daisy_color = 0xFF217bf8
+dk_color = 0xFF3764a0
+diddy_color = 0xFF6ea4d8
+wario_color = 0xFF00cce8
+waluigi_color = 0xFF9e446e
+bowser_color = 0xFF002202
+bowserjr_color = 0xFF926625
+
+canvas_height = 100
+canvas_width = 100
+
+# HUD Location Data
+# Scoreboard was designed in 720p and converted to percentages for rescaling
 
 
 def script_defaults(settings):
-    S.obs_data_set_int(settings, "_scoreboard_base_color", color_default)
+    S.obs_data_set_int(settings, "_scoreboard_base_color", outline_color)
     S.obs_data_set_string(settings, "_menu", "HUD Location")
+    S.obs_data_set_bool(settings, "_pause_HUD", False)
 
 
-    S.obs_data_set_obj(settings, "_inning_font", smaller_font)
+    S.obs_data_set_obj(settings, "_inning_font", default_font)
     S.obs_data_set_obj(settings, "_halfinning_font", small_symbol_font)
 
-    S.obs_data_set_obj(settings, "_away_player_font", default_font)
-    S.obs_data_set_obj(settings, "_away_captain_font", smaller_font)
+    S.obs_data_set_obj(settings, "_away_player_font", away_player_font)
+    S.obs_data_set_obj(settings, "_away_captain_font", captain_font)
     S.obs_data_set_obj(settings, "_away_score_font", default_font)
-    S.obs_data_set_obj(settings, "_away_stars_font", star_font)
+    S.obs_data_set_obj(settings, "_away_stars_font", symbol_font)
 
-    S.obs_data_set_obj(settings, "_home_player_font", default_font)
-    S.obs_data_set_obj(settings, "_home_captain_font", smaller_font)
+    S.obs_data_set_obj(settings, "_home_player_font", home_player_font)
+    S.obs_data_set_obj(settings, "_home_captain_font", captain_font)
     S.obs_data_set_obj(settings, "_home_score_font", default_font)
-    S.obs_data_set_obj(settings, "_home_stars_font", star_font)
+    S.obs_data_set_obj(settings, "_home_stars_font", symbol_font)
 
-
-
-    S.obs_data_set_obj(settings, "_chem_font", smaller_font)
+    S.obs_data_set_obj(settings, "_chem_font", small_symbol_font)
     S.obs_data_set_obj(settings, "_bases_font", symbol_font)
 
     S.obs_data_set_obj(settings, "_count_font", default_font)
@@ -66,7 +89,7 @@ def script_defaults(settings):
 
     S.obs_data_set_obj(settings, "_star_chance_font", default_font)
 
-
+    S.obs_data_set_string(settings, "_canvas_resolution", "medium")
 
 class HUD:
     def __init__(self):
@@ -77,32 +100,114 @@ class HUD:
         self.location.y = 0
 
         self.current_event_num = -1
-        self.current_hud = "None"
 
         # HUD values
-        self.inning = None
-        self.halfinning = None
-        self.balls = None
-        self.strikes = None
-        self.outs = None
+        self.inning = 0
+        self.halfinning = 0
+        self.balls = 0
+        self.strikes = 0
+        self.outs = 0
 
-        self.awayplayer = None
-        self.awaycaptain = None
-        self.awayscore = None
-        self.awaystars = None
+        self.awayplayer = 0
+        self.awaycaptain = 0
+        self.awayscore = 0
+        self.awaystars = 0
 
-        self.homeplayer = None
-        self.homecaptain = None
-        self.homescore = None
-        self.homestars = None
+        self.homeplayer = 0
+        self.homecaptain = 0
+        self.homescore = 0
+        self.homestars = 0
 
-        self.runner_1b = None
-        self.runner_2b = None
-        self.runner_3b = None
-        self.chem = None
-        self.star_chance = None
+        self.runner_1b = 0
+        self.runner_2b = 0
+        self.runner_3b = 0
+        self.chem = 0
+        self.star_chance = 0
+
+        self.canvas_width = 0
+        self.canvas_height = 0
+
+        self.scoreboard_base_height = 0
+        self.scoreboard_padding = 0
+        self.all_inset_heights = 0
+        self.player_base_width = 0
+        self.inning_base_width = 0
+        self.bases_base_width = 0
+        self.count_base_width = 0
+
+        self.scoreboard_base_width = 0
+
+        self.away_base_xlocation = 0
+        self.home_base_xlocation = 0
+        self.inning_base_xlocation = 0
+        self.bases_base_xlocation = 0
+        self.count_base_xlocation = 0
+
+        self.max_font_size = 0
+
+    def location_assignment(self):
+
+        canvas_resolution = S.obs_data_get_string(globalsettings, "_canvas_size")
+
+        if canvas_resolution == "small":
+            self.canvas_width = 1280
+            self.canvas_height = 720
+        elif canvas_resolution == "medium":
+            self.canvas_width = 1920
+            self.canvas_height = 1080
+
+        self.scoreboard_base_height = int(self.canvas_height * (80 / 720))
+        self.scoreboard_padding = int(self.canvas_width * (5 / 1280))
+
+        self.all_inset_heights = int(self.scoreboard_base_height - 2 * self.scoreboard_padding)
+        self.player_base_width = int(self.canvas_width * (200 / 1280))
+        self.inning_base_width = int(self.canvas_width * (45 / 1280))
+        self.bases_base_width = int(self.canvas_width * (55 / 1280))
+        self.count_base_width = int(self.canvas_width * (80 / 1280))
+
+        self.scoreboard_base_width = int(2 * self.player_base_width + self.inning_base_width + self.bases_base_width + self.count_base_width + 6 * self.scoreboard_padding)
+
+        self.away_base_xlocation = self.scoreboard_padding
+        self.home_base_xlocation = self.scoreboard_padding + self.player_base_width + self.away_base_xlocation
+        self.inning_base_xlocation = self.scoreboard_padding + self.player_base_width + self.home_base_xlocation
+        self.bases_base_xlocation = self.scoreboard_padding + self.inning_base_width + self.inning_base_xlocation
+        self.count_base_xlocation = self.scoreboard_padding + self.bases_base_width + self.bases_base_xlocation
 
     def create_HUD(self):
+
+        if str(graphics.canvas_height) == "720":
+            S.obs_data_set_int(symbol_font, "size", 32)
+
+            S.obs_data_set_int(small_symbol_font, "size", 20)
+
+            S.obs_data_set_int(smaller_font, "size", 22)
+
+            S.obs_data_set_int(default_font, "size", 32)
+
+            S.obs_data_set_int(away_player_font, "size", 32)
+
+            S.obs_data_set_int(home_player_font, "size", 32)
+
+            S.obs_data_set_int(captain_font, "size", 26)
+
+            self.max_font_size = 32
+
+        elif str(graphics.canvas_height) == "1080":
+            S.obs_data_set_int(symbol_font, "size", int(32 * 1.5))
+
+            S.obs_data_set_int(small_symbol_font, "size", int(20 * 1.5))
+
+            S.obs_data_set_int(smaller_font, "size", int(22 * 1.5))
+
+            S.obs_data_set_int(default_font, "size", int(32 * 1.5))
+
+            S.obs_data_set_int(away_player_font, "size", int(32 * 1.5))
+
+            S.obs_data_set_int(home_player_font, "size", int(32 * 1.5))
+
+            S.obs_data_set_int(captain_font, "size", int(26 * 1.5))
+
+            self.max_font_size = 48
 
         current_scene = S.obs_frontend_get_current_scene()
         scene = S.obs_scene_from_source(current_scene)
@@ -114,7 +219,7 @@ class HUD:
 
         # HUD Text Boxes
         # Scene add must be called immediately after to avoid OBS crash
-        # Crash issue may have been casued by not making a new settings every source
+        # Crash issue was probably caused by not making a new settings every source
 
         # Inning
         settings = S.obs_data_create()
@@ -219,99 +324,75 @@ class HUD:
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "star_chance_text"))
 
         # HUD Graphics
-        S.obs_data_set_int(settings, "width", HUD_width)
-        S.obs_data_set_int(settings, "height", HUD_height)
-        S.obs_data_set_int(settings, "color", color_default)
+
+        # Away
+        settings = S.obs_data_create()
+        S.obs_data_set_int(settings, "width", self.player_base_width)
+        S.obs_data_set_int(settings, "height", self.all_inset_heights)
+        S.obs_data_set_int(settings, "color", inset_color)
+        scoreboard_base = S.obs_source_create("color_source", 'away_base', settings, None)
+        S.obs_scene_add(scene, scoreboard_base)
+        S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "away_base"))
+        position = S.vec2()
+        S.vec2_set(position, self.away_base_xlocation, self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_base'), position)
+
+        # Home
+        settings = S.obs_data_create()
+        S.obs_data_set_int(settings, "width", self.player_base_width)
+        S.obs_data_set_int(settings, "height", self.all_inset_heights)
+        S.obs_data_set_int(settings, "color", inset_color)
+        scoreboard_base = S.obs_source_create("color_source", 'home_base', settings, None)
+        S.obs_scene_add(scene, scoreboard_base)
+        S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "home_base"))
+        position = S.vec2()
+        S.vec2_set(position, self.home_base_xlocation, self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_base'), position)
+
+        # Inning
+        settings = S.obs_data_create()
+        S.obs_data_set_int(settings, "width", self.inning_base_width)
+        S.obs_data_set_int(settings, "height", self.all_inset_heights)
+        S.obs_data_set_int(settings, "color", inset_color)
+        scoreboard_base = S.obs_source_create("color_source", 'inning_base', settings, None)
+        S.obs_scene_add(scene, scoreboard_base)
+        S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "inning_base"))
+        position = S.vec2()
+        S.vec2_set(position, self.inning_base_xlocation, self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'inning_base'), position)
+
+        # Bases
+        settings = S.obs_data_create()
+        S.obs_data_set_int(settings, "width", self.bases_base_width)
+        S.obs_data_set_int(settings, "height", self.all_inset_heights)
+        S.obs_data_set_int(settings, "color", inset_color)
+        scoreboard_base = S.obs_source_create("color_source", 'bases_base', settings, None)
+        S.obs_scene_add(scene, scoreboard_base)
+        S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "bases_base"))
+        position = S.vec2()
+        S.vec2_set(position, self.bases_base_xlocation, self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'bases_base'), position)
+
+        # Count
+        settings = S.obs_data_create()
+        S.obs_data_set_int(settings, "width", self.count_base_width)
+        S.obs_data_set_int(settings, "height", self.all_inset_heights)
+        S.obs_data_set_int(settings, "color", inset_color)
+        scoreboard_base = S.obs_source_create("color_source", 'count_base', settings, None)
+        S.obs_scene_add(scene, scoreboard_base)
+        S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "count_base"))
+        position = S.vec2()
+        S.vec2_set(position, self.count_base_xlocation, self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'count_base'), position)
+
+        # Base
+        settings = S.obs_data_create()
+        S.obs_data_set_int(settings, "width", self.scoreboard_base_width)
+        S.obs_data_set_int(settings, "height", self.scoreboard_base_height)
+        S.obs_data_set_int(settings, "color", outline_color)
         scoreboard_base = S.obs_source_create("color_source", 'scoreboard_base', settings, None)
         S.obs_scene_add(scene, scoreboard_base)
         S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(scene, "scoreboard_base"))
-
-        # Text Locations
-
-        # Inning
-        position = S.vec2()
-        S.vec2_set(position, 375, 25)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'inning_text'), position)
-
-        # Halfinning
-        S.vec2_zero(position)
-        S.vec2_set(position, 375, 5)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'halfinning_text'), position)
-
-        # Away Player
-        S.vec2_zero(position)
-        S.vec2_set(position, 5, 5)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_player_text'), position)
-
-        # Away Captain
-        S.vec2_zero(position)
-        S.vec2_set(position, 5, 45)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_captain_text'), position)
-
-        # Away Score
-        S.vec2_zero(position)
-        S.vec2_set(position, 150, 5)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_score_text'), position)
-
-        # Away Stars
-        S.vec2_zero(position)
-        S.vec2_set(position, 115, 45)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_stars_text'), position)
-
-        # Home Player
-        S.vec2_zero(position)
-        S.vec2_set(position, 185, 5)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_player_text'), position)
-
-        # Home Captain
-        S.vec2_zero(position)
-        S.vec2_set(position, 185, 45)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_captain_text'), position)
-
-        # Home Score
-        S.vec2_zero(position)
-        S.vec2_set(position, 330, 5)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_score_text'), position)
-
-        # Home Stars
-        S.vec2_zero(position)
-        S.vec2_set(position, 295, 45)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_stars_text'), position)
-
-        # 1st Base
-        S.vec2_zero(position)
-        S.vec2_set(position, 440, 12)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_1b_text'), position)
-
-        # 2nd Base
-        S.vec2_zero(position)
-        S.vec2_set(position, 428, 0)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_2b_text'), position)
-
-        # 3rd Base
-        S.vec2_zero(position)
-        S.vec2_set(position, 416, 12)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_3b_text'), position)
-
-        # Chem
-        S.vec2_zero(position)
-        S.vec2_set(position, 420, 45)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'chem_text'), position)
-
-        # Outs
-        S.vec2_zero(position)
-        S.vec2_set(position, 475, 45)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'outs_text'), position)
-
-        # Count
-        S.vec2_zero(position)
-        S.vec2_set(position, 480, 10)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'count_text'), position)
-
-        # Star Chance
-        S.vec2_zero(position)
-        S.vec2_set(position, 5, 80)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'star_chance_text'), position)
 
     def update_text(self):
         current_scene = S.obs_frontend_get_current_scene()
@@ -333,13 +414,13 @@ class HUD:
             halfinning_string = "▲"
             position = S.vec2()
             S.vec2_zero(position)
-            S.vec2_set(position, 375, 0)
+            S.vec2_set(position, self.inning_base_xlocation + ((self.inning_base_width - S.obs_source_get_width(S.obs_get_source_by_name("halfinning_text")))/2), self.scoreboard_padding)
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'halfinning_text'), position)
         else:
             halfinning_string = "▼"
             position = S.vec2()
             S.vec2_zero(position)
-            S.vec2_set(position, 375, 45)
+            S.vec2_set(position, self.inning_base_xlocation + ((self.inning_base_width - S.obs_source_get_width(S.obs_get_source_by_name("halfinning_text")))/2), ((self.scoreboard_base_height - 2*self.scoreboard_padding) - S.obs_source_get_height(S.obs_get_source_by_name("halfinning_text"))))
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'halfinning_text'), position)
 
         S.obs_data_set_string(settings, "text", halfinning_string)
@@ -396,7 +477,7 @@ class HUD:
         # Away Stars
         source = S.obs_get_source_by_name("away_stars_text")
         settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", str("★: " + str(self.awaystars)))
+        S.obs_data_set_string(settings, "text", str("★:" + str(self.awaystars)))
         S.obs_source_update(source, settings)
         S.obs_data_release(settings)
         S.obs_source_release(source)
@@ -428,7 +509,7 @@ class HUD:
         # Home Stars
         source = S.obs_get_source_by_name("home_stars_text")
         settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", str("★: " + str(self.homestars)))
+        S.obs_data_set_string(settings, "text", str("★:" + str(self.homestars)))
         S.obs_source_update(source, settings)
         S.obs_data_release(settings)
         S.obs_source_release(source)
@@ -440,7 +521,6 @@ class HUD:
             runner_1b_string = "◆"
         else:
             runner_1b_string = "◇"
-        print(runner_1b_string)
         S.obs_data_set_string(settings, "text", runner_1b_string)
         S.obs_source_update(source, settings)
         S.obs_data_release(settings)
@@ -491,11 +571,216 @@ class HUD:
         S.obs_data_release(settings)
         S.obs_source_release(source)
 
+    def stats_dependent_update(self):
+        current_scene = S.obs_frontend_get_current_scene()
+        scene = S.obs_scene_from_source(current_scene)
+
+        # Used for player name font size, and for updating the inning centered position
+        # This function does not work when decreasing the length, but this error should never come up
+        single_digit_width = int(S.obs_data_get_int(default_font, "size") * (19 / 32))  # Default for Trebuchet MS font
+        print(len(str(self.inning)))
+        if len(str(self.inning)) == 1:
+            single_digit_width = S.obs_source_get_width(S.obs_get_source_by_name("inning_text"))
+
+        # Text Resizing
+        if len(str(self.awayplayer)) != 0:
+            player_name_max_width = self.player_base_width - 3 * self.scoreboard_padding - 2 * single_digit_width
+            print(player_name_max_width, "max_width")
+            print(len(str(self.awayplayer)), "length")
+            average_character_width = S.obs_data_get_int(default_font, "size") * (
+                0.68)  # This was determined through testing
+            for i in range(0, self.max_font_size + 1):
+                if len(str(self.awayplayer)) * i * 0.55 > player_name_max_width:
+                    i + 1
+                    break
+            print(i, "font")
+            S.obs_data_set_int(away_player_font, "size", i)
+
+        if len(str(self.homeplayer)) != 0:
+            for i in range(0, self.max_font_size + 1):
+                if len(str(self.homeplayer)) * i * 0.55 > player_name_max_width:
+                    i + 1
+                    break
+            print(i, "home font")
+            S.obs_data_set_int(home_player_font, "size", i)
+
+        # Fonts
+        source = S.obs_get_source_by_name("away_player_text")
+        S.obs_data_set_obj(globalsettings, "font", away_player_font)
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("away_captain_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_away_captain_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("away_score_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_away_score_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("away_stars_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_away_stars_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("home_player_text")
+        S.obs_data_set_obj(globalsettings, "font", home_player_font)
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("home_captain_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_home_captain_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("home_score_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_home_score_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("home_stars_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_home_stars_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("inning_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_inning_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("halfinning_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_halfinning_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("chem_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_chem_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("runner_1b_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_bases_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("runner_2b_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_bases_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("runner_3b_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_bases_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("count_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_count_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("outs_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_outs_font"))
+        S.obs_source_update(source, globalsettings)
+
+        source = S.obs_get_source_by_name("star_chance_text")
+        S.obs_data_set_obj(globalsettings, "font", S.obs_data_get_obj(globalsettings, "_star_chance_font"))
+        S.obs_source_update(source, globalsettings)
+
+        # Updates graphics features that chance based on the stats files
+        # Captain Base Color Update
+        settings = S.obs_data_create()
+        source = S.obs_get_source_by_name("away_base")
+        S.obs_data_set_int(settings, "color", self.home_away_color(str(self.awaycaptain)))
+        S.obs_source_update(source, settings)
+
+        settings = S.obs_data_create()
+        source = S.obs_get_source_by_name("home_base")
+        S.obs_data_set_int(settings, "color", self.home_away_color(str(self.homecaptain)))
+        S.obs_source_update(source, settings)
+
+        # Text Locations
+        # Away Player (Constant Location)
+        position = S.vec2()
+        S.vec2_zero(position)
+        S.vec2_set(position, 2 * self.scoreboard_padding, self.scoreboard_padding + self.max_font_size/2 - S.obs_data_get_int(away_player_font, "size")/2)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_player_text'), position)
+
+        # Away Captain (Constant Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, 2 * self.scoreboard_padding, self.scoreboard_base_height -  S.obs_data_get_int(captain_font, "size") - 2*self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_captain_text'), position)
+
+        # Away Score (Variable Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.home_base_xlocation - 2 * self.scoreboard_padding - len(str(self.awayscore))*single_digit_width , self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_score_text'), position)
+
+        # Away Stars (Variable Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.home_base_xlocation - 2 * self.scoreboard_padding - S.obs_source_get_width(S.obs_get_source_by_name("away_stars_text")), self.scoreboard_base_height -  S.obs_data_get_int(symbol_font, "size") - 2 * self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'away_stars_text'), position)
+
+        # Home Player (Constant Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.home_base_xlocation + self.scoreboard_padding, self.scoreboard_padding + self.max_font_size/2 - S.obs_data_get_int(home_player_font, "size")/2)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_player_text'), position)
+
+        # Home Captain (Constant Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.scoreboard_padding + self.home_base_xlocation, self.scoreboard_base_height -  S.obs_data_get_int(captain_font, "size") - 2 * self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_captain_text'), position)
+
+        # Home Score (Variable Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.inning_base_xlocation - 2 * self.scoreboard_padding - len(str(self.homescore)) * single_digit_width, self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_score_text'), position)
+
+        # Home Stars (Variable Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.inning_base_xlocation - 2 * self.scoreboard_padding - S.obs_source_get_width(S.obs_get_source_by_name("home_stars_text")), self.scoreboard_base_height -  S.obs_data_get_int(symbol_font, "size") - 2 * self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'home_stars_text'), position)
+
+        inning_centered_location = self.inning_base_xlocation + (self.inning_base_width - (len(str(self.inning)) * single_digit_width))/2
+
+        # Inning (Centered Location) Font size is used rather than get_height since it is more accurate
+        position = S.vec2()
+        S.vec2_set(position, inning_centered_location, ((self.scoreboard_base_height - 2*self.scoreboard_padding) - S.obs_data_get_int(default_font, "size") - (S.obs_data_get_int(default_font, "size")/2)))
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'inning_text'), position)
+
+        # Halfinning (Centered Location) Position is handled above
+        # S.vec2_zero(position)
+        # S.vec2_set(position, inning_base_xlocation + ((inning_base_width - S.obs_source_get_width(S.obs_get_source_by_name("halfinning_text")))/2), scoreboard_padding)
+        # S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'halfinning_text'), position)
+
+        # 2nd Base (Centered Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2), 0)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_2b_text'), position)
+
+        # 1st Base (Off-Centered Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2) + (S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6), S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_1b_text'), position)
+
+        # 3rd Base (Off-Centered Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.bases_base_xlocation+((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("runner_2b_text")))/2) - (S.obs_source_get_width(S.obs_get_source_by_name("runner_1b_text"))/1.6), S.obs_source_get_width(S.obs_get_source_by_name("runner_3b_text"))/1.6)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'runner_3b_text'), position)
+
+        # Chem (Centered Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.bases_base_xlocation + ((self.bases_base_width - S.obs_source_get_width(S.obs_get_source_by_name("chem_text")))/2), self.scoreboard_base_height - S.obs_data_get_int(smaller_font, "size") - 2 * self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'chem_text'), position)
+
+        # Outs (Centered Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.count_base_xlocation + ((self.count_base_width - S.obs_source_get_width(S.obs_get_source_by_name("outs_text")))/2), self.scoreboard_base_height - S.obs_data_get_int(symbol_font, "size")- self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'outs_text'), position)
+
+        # Count (Centered Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.count_base_xlocation + ((self.count_base_width - S.obs_source_get_width(S.obs_get_source_by_name("count_text")))/2), 2 * self.scoreboard_padding)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'count_text'), position)
+
+        # Star Chance (Constant Location)
+        S.vec2_zero(position)
+        S.vec2_set(position, self.scoreboard_padding, self.scoreboard_base_height)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(scene, 'star_chance_text'), position)
+
 
     def dir_scan(self):
-        hud_file_path = "/Users/matthewgreene/Library/Application Support/ProjectRio/HudFiles/decoded.hud.json"
+
+        hud_file_path = S.obs_data_get_string(globalsettings, "_path")
         if not os.path.isfile(hud_file_path):
             return ""
+
         with open(hud_file_path) as f:
             hud_data = json.load(f)
 
@@ -505,6 +790,8 @@ class HUD:
 
         print("New HUD:", self.current_event_num, hud_data['Event Num'])
         self.current_event_num = hud_data['Event Num']
+
+        print(S.obs_source_get_width(S.obs_get_source_by_name("count_text")))
 
         # Bookkeepping vars
         away_team_captain_char = str()
@@ -579,7 +866,7 @@ class HUD:
         # pitcher_data_output_file = os.path.join(output_dir, 'pitcher_data.txt')
 
         # Main HUD
-        if hud_data['Half Inning'] == "0":
+        if str(hud_data['Half Inning']) == "0":
             self.halfinning = "0"
         else:
             self.halfinning = "1"
@@ -607,13 +894,16 @@ class HUD:
         self.strikes = hud_data['Strikes']
         self.outs = hud_data['Outs']
         self.chem = hud_data['Chemistry Links on Base']
-        print(self.chem, "chem")
         if hud_data['Star Chance']:
             self.star_chance = "1"
         else:
             self.star_chance = "0"
 
         self.update_text()
+        self.stats_dependent_update()
+
+
+
     # Previous Event info
     # First check if previous event exists and had contact
     # if (hud_data.get('Previous Event')):
@@ -621,17 +911,52 @@ class HUD:
     #        contact_output_file = os.path.join(output_dir, 'contact.txt')
     #        with open(contact_output_file, 'w', encoding="utf-8") as f:
 
+    def home_away_color(self, home_or_away_captain):
+        if home_or_away_captain == "Mario":
+            return mario_color
+        if home_or_away_captain == "Luigi":
+            return luigi_color
+        if home_or_away_captain == "Peach":
+            return peach_color
+        if home_or_away_captain == "Daisy":
+            return daisy_color
+        if home_or_away_captain == "Yoshi":
+            return yoshi_color
+        if home_or_away_captain == "Birdo":
+            return birdo_color
+        if home_or_away_captain == "Yoshi":
+            return yoshi_color
+        if home_or_away_captain == "Wario":
+            return wario_color
+        if home_or_away_captain == "Waluigi":
+            return waluigi_color
+        if home_or_away_captain == "DK":
+            return dk_color
+        if home_or_away_captain == "Diddy":
+            return diddy_color
+        if home_or_away_captain == "Bowser":
+            return bowser_color
+        if home_or_away_captain == "Bowser Jr":
+            return bowserjr_color
+        return inset_color
 
 graphics = HUD()
 
+def script_load(settings):
+    global pause_HUD_bool
+    pause_HUD_bool = False
 
 def script_tick(seconds):
     if pause_HUD_bool == False:
         graphics.dir_scan()
 
 def script_update(settings):
+    global globalsettings
+    globalsettings = settings
     current_scene = S.obs_frontend_get_current_scene()
     scene = S.obs_scene_from_source(current_scene)
+
+    graphics.location_assignment()
 
     # Pause HUD
     global pause_HUD_bool
@@ -642,7 +967,7 @@ def script_update(settings):
     vpositionslider = S.obs_data_get_int(settings, "_vslider")
     HUD_Group = S.obs_scene_find_source(scene, "HUD")
     position = S.vec2()
-    S.vec2_set(position, int(((canvas_width - HUD_width) * (hpositionslider / 1000))), int(((canvas_height - HUD_height) * (vpositionslider / 1000))))
+    S.vec2_set(position, int(((graphics.canvas_width - graphics.scoreboard_base_width) * (hpositionslider / 1000))), int(((graphics.canvas_height - graphics.scoreboard_base_height) * (vpositionslider / 1000))))
     S.obs_sceneitem_set_pos(HUD_Group, position)
 
     # Color Update
@@ -651,74 +976,17 @@ def script_update(settings):
     S.obs_data_set_int(settings, "color", scoreboard_base_color)
     S.obs_source_update(source, settings)
 
-    # Fonts
-    source = S.obs_get_source_by_name("away_player_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_away_player_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("away_captain_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_away_captain_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("away_score_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_away_score_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("away_stars_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_away_stars_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("home_player_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_home_player_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("home_captain_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_home_captain_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("home_score_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_home_score_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("home_stars_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_home_stars_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("inning_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_inning_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("halfinning_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_halfinning_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("chem_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_chem_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("runner_1b_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_bases_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("runner_2b_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_bases_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("runner_3b_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_bases_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("outs_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_outs_font"))
-    S.obs_source_update(source, settings)
-
-    source = S.obs_get_source_by_name("star_chance_text")
-    S.obs_data_set_obj(settings, "font", S.obs_data_get_obj(settings, "_star_chance_font"))
-    S.obs_source_update(source, settings)
-
 def add_pressed(props, prop):
     graphics.create_HUD()
     graphics.update_text()
+    graphics.stats_dependent_update()
+    graphics.update_text()
+    graphics.stats_dependent_update()
+
+def refresh_pressed(props, prop):
+    graphics.update_text()
+    graphics.stats_dependent_update()
+    print(S.obs_source_get_width(S.obs_get_source_by_name("inning_text")))
 
 def remove_pressed(props, prop):
     S.obs_source_remove(S.obs_get_source_by_name("HUD"))
@@ -736,13 +1004,14 @@ def script_properties():  # ui
     S.obs_property_list_add_string(menu_list, "Colors", "color")
     S.obs_property_list_add_string(menu_list, "Stats", "stats")
     S.obs_property_list_add_string(menu_list, "Canvas Size", "size")
-    S.obs_property_list_add_string(menu_list, "Fonts", "fonts")
+    #S.obs_property_list_add_string(menu_list, "Fonts", "fonts")
 
     # Location Properties
     S.obs_properties_add_button(props, "button", "Add HUD", add_pressed)
+    S.obs_properties_add_button(props, "refreshbutton", "Refresh HUD", refresh_pressed)
     S.obs_properties_add_button(props, "removebutton", "Remove HUD", remove_pressed)
-    S.obs_properties_add_int_slider(props, "_hslider", "Horizontal Location", 0, 1000, 1)
-    S.obs_properties_add_int_slider(props, "_vslider", "Vertical Location", 0, 1000, 1)
+    S.obs_properties_add_int_slider(props, "_hslider", "X Location", 0, 1000, 1)
+    S.obs_properties_add_int_slider(props, "_vslider", "Y Location", 0, 1000, 1)
     bool = S.obs_properties_add_bool(props, "_bool", "_bool:")
 
     # Color
@@ -750,10 +1019,14 @@ def script_properties():  # ui
 
     # Stats
     S.obs_properties_add_bool(props, "_pause_HUD", "Pause HUD")
+    OS_list = S.obs_properties_add_list(props, "_OS_list", "OS:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+    S.obs_property_list_add_string(OS_list, "Custom", "custom")
+    S.obs_property_list_add_string(OS_list, "Windows", "windows")
+    S.obs_property_list_add_string(OS_list, "MacOS", "macOS")
+    S.obs_properties_add_text(props, "_path", "Path to HUD json:", S.OBS_TEXT_DEFAULT)
 
     # Canvas Size Properties
-    canvas_size_list = S.obs_properties_add_list(props, "_canvas_size", "Resolution", S.OBS_COMBO_TYPE_LIST,
-                                                 S.OBS_COMBO_FORMAT_STRING)
+    canvas_size_list = S.obs_properties_add_list(props, "_canvas_size", "Resolution", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(canvas_size_list, "720p", "small")
     S.obs_property_list_add_string(canvas_size_list, "1080p", "medium")
     S.obs_property_set_visible(canvas_size_list, False)
@@ -783,8 +1056,21 @@ def script_properties():  # ui
     S.obs_property_set_visible(bool, False)
     S.obs_property_set_modified_callback(menu_list, menu_callback)
 
+    S.obs_property_set_modified_callback(OS_list, OS_callback)
+
     return props
 
+def OS_callback(props, prop, settings):
+    if S.obs_data_get_string(settings, "_OS_list") == "windows":
+        current_path = str(os.path.realpath(__file__))
+        HUD_Path = current_path.split("\"", 3)[0] + "\"" + current_path.split("\"", 3)[1] + "\"" + current_path.split("\"", 3)[2] + "\"Documents\"Project Rio\"HudFiles\"decoded.hud.json"
+        S.obs_data_set_string(settings, "_path", HUD_Path)
+        S.obs_data_set_string(settings, "_path", HUD_Path)
+    elif S.obs_data_get_string(settings, "_OS_list") == "macOS":
+        current_path = str(os.path.realpath(__file__))
+        HUD_Path = "/"+current_path.split("/", 3)[1] +"/"+ current_path.split("/", 3)[2] + "/" + "Library/Application Support/ProjectRio/HudFiles/decoded.hud.json"
+        S.obs_data_set_string(settings, "_path", HUD_Path)
+    return True
 
 def menu_callback(props, prop, settings):
     # Return true is needed for the callback function to complete properly
@@ -800,6 +1086,8 @@ def menu_callback(props, prop, settings):
 
     # Stats
     S.obs_property_set_visible(S.obs_properties_get(props, "_pause_HUD"), menu_list_selection == "stats")
+    S.obs_property_set_visible(S.obs_properties_get(props, "_OS_list"), menu_list_selection == "stats")
+    S.obs_property_set_visible(S.obs_properties_get(props, "_path"), menu_list_selection == "stats")
 
     # Canvas Size
     S.obs_property_set_visible(S.obs_properties_get(props, "_canvas_size"), menu_list_selection == "size")
