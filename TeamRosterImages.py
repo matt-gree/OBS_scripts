@@ -5,10 +5,11 @@ import platform as plt
 
 #def script_defaults(settings):
 
-images_directory = str(os.path.realpath(__file__))[:-19] + "Images/"
+images_directory = str(os.path.dirname(__file__)) + "/Images/"
 
 class rosterimages:
     def __init__(self):
+
         self.location = S.vec2()
 
         self.away_team_roster = []
@@ -54,8 +55,11 @@ class rosterimages:
         self.new_event = 0
         self.images_added = False
 
-        if S.obs_get_source_by_name("Team1Roster8") is not None:
-            self.images_added = True
+        self.home_roster_loc = S.vec2()
+        self.away_roster_loc = S.vec2()
+
+        self.home_player_loc = S.vec2()
+        self.away_player_loc = S.vec2()
 
         self.image_width = 60
         self.home_group_width = 0
@@ -137,7 +141,6 @@ class rosterimages:
         # Bookkeepping vars
 
         # Dicts to hold data for characters and teams(player)
-
         for team in range(0, 2):
             for roster in range(0, 9):
                 team_roster_str = "Team " + str(team) + " Roster " + str(roster)
@@ -184,7 +187,7 @@ class rosterimages:
         S.obs_source_release(source)
 
         self.new_event = 0
-
+        """
         print(S.obs_data_get_string(globalsettings, "_roster_layout"), "roster_layout")
         if S.obs_data_get_string(globalsettings, "_roster_layout") == "horizontal":
             getimage.set_position_horizontal()
@@ -192,8 +195,32 @@ class rosterimages:
             getimage.set_position_vertical()
         if S.obs_data_get_string(globalsettings, "_roster_layout") == "2x4":
             getimage.set_position_2x4()
+            """
+    def pre_postion_update(self):
+        current_scene = S.obs_frontend_get_current_scene()
+        self.scene = S.obs_scene_from_source(current_scene)
+        S.obs_source_release(current_scene)
+
+        if S.obs_get_source_by_name("Team1Roster8") is not None:
+            S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "Home Roster"),
+                                    self.home_roster_loc)
+            S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"),
+                                    self.away_roster_loc)
+            S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "home_player_text"),
+                                    self.home_player_loc)
+            S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "away_player_text"),
+                                    self.away_player_loc)
+            for item in self.roster_image_list:
+                S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, item[0]), item[3])
+        else:
+            self.home_roster_loc = S.vec2()
+            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Home Roster"), self.home_roster_loc)
+            self.away_roster_loc = S.vec2()
+            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"), self.away_roster_loc)
 
     def set_position_horizontal(self):
+        self.pre_postion_update()
+
         for i in range(0, len(self.roster_image_list)):
             scale = S.vec2()
             scale.x = 1
@@ -211,23 +238,26 @@ class rosterimages:
                                 self.away_roster_loc)
 
     def set_position_vertical(self):
+        self.pre_postion_update()
+
+        print(self.scene)
         for i in range(0, len(self.roster_image_list)):
             scale = S.vec2()
             scale.x = 1
             scale.y = 1
-            S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]),
-                                     scale)
+            S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), scale)
             S.vec2_zero(self.roster_image_list[i][3])
             self.roster_image_list[i][3].y = i * self.image_width
             if i > 8:
                 self.roster_image_list[i][3].y = (i-9) * self.image_width
+            print(self.roster_image_list[i][3].y)
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), self.roster_image_list[i][3])
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Home Roster"),
-                                    self.home_roster_loc)
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"),
-                                    self.away_roster_loc)
+            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Home Roster"), self.home_roster_loc)
+            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"), self.away_roster_loc)
 
     def set_position_2x4(self):
+        self.pre_postion_update()
+
         print("set_position_2x4")
         counter = 0
         for i in range(0,len(self.roster_image_list)):
@@ -261,62 +291,44 @@ class rosterimages:
 
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"), self.away_roster_loc)
 
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Home Roster"),
-                                self.home_roster_loc)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"),
-                                self.away_roster_loc)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Home Roster"), self.home_roster_loc)
+
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"), self.away_roster_loc)
 
 def script_load(settings):
-    global pause_bool
-    pause_bool = S.obs_data_get_bool(settings, "_pause")
+
+    S.timer_add(check_for_updates, 1000)
 
     global getimage
     getimage = rosterimages()
 
     getimage.new_event = 1
     getimage.dir_scan()
-    getimage.update_images()
+    #getimage.update_images()
+
+    print(getimage.scene)
 
     global HUD_path
     HUD_path = S.obs_data_get_string(settings, "_path")
 
-def script_tick(seconds):
+def check_for_updates():
    if pause_bool == False:
        getimage.dir_scan()
        print(getimage.home_roster_loc.x, "X Home")
        getimage.update_images()
+       print(getimage.roster_image_list)
+
 
 def script_update(settings):
+    current_scene = S.obs_frontend_get_current_scene()
+    getimage.scene = S.obs_scene_from_source(current_scene)
+    S.obs_source_release(current_scene)
+
     global globalsettings
     globalsettings = settings
 
     global pause_bool
     pause_bool = S.obs_data_get_bool(settings, "_pause")
-
-    # Home Group
-    #home_group_width = S.obs_source_get_width(S.obs_get_source_by_name("Home Roster"))
-    #home_group_height = S.obs_source_get_height(S.obs_get_source_by_name("Home Roster"))
-    #home_scale = S.vec2()
-    #S.obs_sceneitem_get_scale(S.obs_scene_find_source_recursive(getimage.scene, "Home Roster"), home_scale)
-    #getimage.home_roster_loc.x = S.obs_data_get_int(settings, "_home_hslider")
-    #getimage.home_roster_loc.y = S.obs_data_get_int(settings, "_home_vslider")
-    #print(getimage.home_roster_loc.y)
-    #HUD_Group = S.obs_scene_find_source(getimage.scene, "Home Roster")
-    #position = getimage.home_roster_loc
-    #S.vec2_set(position, int(((getimage.canvas_width - home_group_width*home_scale.x) * (getimage.home_roster_loc.x / 1000))), int(((getimage.canvas_height - home_group_height*home_scale.y) * (    getimage.home_roster_loc.y / 1000))))
-    #S.obs_sceneitem_set_pos(HUD_Group, position)
-
-    # Away Group
-    #away_group_width = S.obs_source_get_width(S.obs_get_source_by_name("Away Roster"))
-    #away_group_height = S.obs_source_get_height(S.obs_get_source_by_name("Away Roster"))
-    #away_scale = S.vec2()
-    #S.obs_sceneitem_get_scale(S.obs_scene_find_source_recursive(getimage.scene, "Home Roster"), away_scale)
-    #getimage.away_roster_loc.x = S.obs_data_get_int(settings, "_away_hslider")
-    #getimage.away_roster_loc.y = S.obs_data_get_int(settings, "_away_vslider")
-    #HUD_Group = S.obs_scene_find_source(getimage.scene, "Away Roster")
-    #position = getimage.away_roster_loc
-    #S.vec2_set(position, int(((getimage.canvas_width - away_group_width*away_scale.x) * (getimage.away_roster_loc.x  / 1000))), int(((getimage.canvas_height - away_group_height*away_scale.y) * (getimage.away_roster_loc.y / 1000))))
-    #S.obs_sceneitem_set_pos(HUD_Group, position)
 
 def script_description():
     return "Mario Baseball team roster images\nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!"
@@ -345,6 +357,21 @@ def remove_pressed(props, prop):
     S.obs_source_remove(S.obs_get_source_by_name("away_player_text"))
     S.obs_source_remove(S.obs_get_source_by_name("home_player_text"))
 
+def flip_teams(props, prop):
+    S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, "Home Roster"), getimage.home_roster_loc)
+    S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, "Away Roster"), getimage.away_roster_loc)
+    S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, "home_player_text"), getimage.home_player_loc)
+    S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, "away_player_text"), getimage.away_player_loc)
+
+    S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(getimage.scene, "Home Roster"), getimage.away_roster_loc)
+    S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(getimage.scene, "Away Roster"), getimage.home_roster_loc)
+    S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(getimage.scene, "home_player_text"), getimage.away_player_loc)
+    S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(getimage.scene, "away_player_text"), getimage.home_player_loc)
+
+    S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, "Home Roster"), getimage.home_roster_loc)
+    S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, "Away Roster"), getimage.away_roster_loc)
+    S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, "home_player_text"), getimage.home_player_loc)
+    S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, "away_player_text"), getimage.away_player_loc)
 
 def script_properties():
     props = S.obs_properties_create()
@@ -358,16 +385,12 @@ def script_properties():
     S.obs_property_list_add_string(OS_list, "MacOS", "macOS")
     S.obs_properties_add_text(props, "_path", "Path to HUD json:", S.OBS_TEXT_DEFAULT)
 
-    #S.obs_properties_add_int_slider(props, "_home_hslider", "Home X Location", 0, 1000, 1)
-    #S.obs_properties_add_int_slider(props, "_home_vslider", "Home Y Location", 0, 1000, 1)
-
-    #S.obs_properties_add_int_slider(props, "_away_hslider", "Away X Location", 0, 1000, 1)
-    #S.obs_properties_add_int_slider(props, "_away_vslider", "Away Y Location", 0, 1000, 1)
-
     roster_layout = S.obs_properties_add_list(props, "_roster_layout", "Roster Layout:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(roster_layout, "Horizontal", "horizontal")
     S.obs_property_list_add_string(roster_layout, "Veritcal", "vertical")
     S.obs_property_list_add_string(roster_layout, "2 x 4", "2x4")
+
+    S.obs_properties_add_button(props, "_flipteams", "Flip Team Locations", flip_teams)
 
     S.obs_property_set_modified_callback(OS_list, OS_callback)
     S.obs_property_set_modified_callback(roster_layout, layout_callback)
