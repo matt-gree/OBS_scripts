@@ -45,13 +45,6 @@ class rosterimages:
             ["Team1Roster8", 0, "", S.vec2()],
         ]
 
-        self.home_roster_loc = S.vec2()
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Home Roster"),
-                                self.home_roster_loc)
-        self.away_roster_loc = S.vec2()
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"),
-                                self.away_roster_loc)
-
         self.new_event = 0
         self.images_added = False
 
@@ -77,15 +70,16 @@ class rosterimages:
         if str(plt.platform()).lower()[0] == 'm':
             self.platform = 'MacOS'
             current_path = str(os.path.realpath(__file__))
-            self.HUD_path = "/" + current_path.split("/", 3)[1] + "/" + current_path.split("/", 3)[
-                2] + "/" + "Library/Application Support/ProjectRio/HudFiles/decoded.hud.json"
+            """self.HUD_path = "/" + current_path.split("/", 3)[1] + "/" + current_path.split("/", 3)[
+                2] + "/" + "Library/Application Support/ProjectRio/HudFiles/decoded.hud.json" """
         elif str(plt.platform()).lower()[0] == 'w':
             self.platform = 'Windows'
             current_path = str(os.path.realpath(__file__))
-            self.HUD_path = current_path.split("\\")[0] + "/" + current_path.split("\\")[1] + "/" + current_path.split("\\")[
-                2] + "/Documents/Project Rio/HudFiles/decoded.hud.json"
+            """self.HUD_path = current_path.split("\\")[0] + "/" + current_path.split("\\")[1] + "/" + current_path.split("\\")[
+                2] + "/Documents/Project Rio/HudFiles/decoded.hud.json" """
         else:
             self.platform = 'Unknown'
+
 
     def add_captains(self):
         home_group = S.obs_scene_add_group(self.scene, "Home Roster")
@@ -118,7 +112,7 @@ class rosterimages:
         S.obs_scene_add(self.scene, Away_Captain_Text)
 
     def dir_scan(self):
-        hud_file_path = self.HUD_path
+        hud_file_path = S.obs_data_get_string(globalsettings, "_path")
         if not os.path.isfile(hud_file_path):
             return ""
 
@@ -132,7 +126,6 @@ class rosterimages:
 
         self.new_event = 1
 
-        print("New HUD:", self.current_event_num, hud_data['Event Num'])
         self.current_event_num = hud_data['Event Num']
 
         self.home_player = hud_data["Home Player"]
@@ -240,7 +233,6 @@ class rosterimages:
     def set_position_vertical(self):
         self.pre_postion_update()
 
-        print(self.scene)
         for i in range(0, len(self.roster_image_list)):
             scale = S.vec2()
             scale.x = 1
@@ -250,15 +242,12 @@ class rosterimages:
             self.roster_image_list[i][3].y = i * self.image_width
             if i > 8:
                 self.roster_image_list[i][3].y = (i-9) * self.image_width
-            print(self.roster_image_list[i][3].y)
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), self.roster_image_list[i][3])
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Home Roster"), self.home_roster_loc)
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "Away Roster"), self.away_roster_loc)
 
     def set_position_2x4(self):
         self.pre_postion_update()
-
-        print("set_position_2x4")
         counter = 0
         for i in range(0,len(self.roster_image_list)):
             S.vec2_zero(self.roster_image_list[i][3])
@@ -314,9 +303,7 @@ def script_load(settings):
 def check_for_updates():
    if pause_bool == False:
        getimage.dir_scan()
-       print(getimage.home_roster_loc.x, "X Home")
        getimage.update_images()
-       print(getimage.roster_image_list)
 
 
 def script_update(settings):
