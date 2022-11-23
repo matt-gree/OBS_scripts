@@ -180,15 +180,14 @@ class rosterimages:
         S.obs_source_release(source)
 
         self.new_event = 0
-        """
-        print(S.obs_data_get_string(globalsettings, "_roster_layout"), "roster_layout")
+
         if S.obs_data_get_string(globalsettings, "_roster_layout") == "horizontal":
-            getimage.set_position_horizontal()
+            self.set_position_horizontal()
         if S.obs_data_get_string(globalsettings, "_roster_layout") == "vertical":
-            getimage.set_position_vertical()
+            self.set_position_vertical()
         if S.obs_data_get_string(globalsettings, "_roster_layout") == "2x4":
-            getimage.set_position_2x4()
-            """
+            self.set_position_2x4()
+
     def pre_postion_update(self):
         current_scene = S.obs_frontend_get_current_scene()
         self.scene = S.obs_scene_from_source(current_scene)
@@ -288,12 +287,14 @@ def script_load(settings):
 
     S.timer_add(check_for_updates, 1000)
 
+    global globalsettings
+    globalsettings = settings
+
     global getimage
     getimage = rosterimages()
 
     getimage.new_event = 1
     getimage.dir_scan()
-    #getimage.update_images()
 
     print(getimage.scene)
 
