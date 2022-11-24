@@ -121,30 +121,32 @@ class pitcherstats:
 
     def custom_stats(self):
         custom_stats_list = []
+        custom_stats_list.append("Pitcher: " + str(self.pitcher))
         stats_string = ""
-        custom_stats_list.append("Pitcher: " + self.pitcher)
-        if S.obs_data_get_bool(globalsettings, "_batters_faced") == True:
-            custom_stats_list.append("Batters Faced: " + str(self.batters_faced))
-        if S.obs_data_get_bool(globalsettings, "_runs_allowed") == True:
-            custom_stats_list.append("Runs Allowed: " + str(self.runs_allowed))
-        if S.obs_data_get_bool(globalsettings, "_earned_runs") == True:
-            custom_stats_list.append("Earned Runs: " + str(self.runs_allowed))
-        if S.obs_data_get_bool(globalsettings, "_batters_walked") == True:
-            custom_stats_list.append("Walks: " + str(self.walks))
-        if S.obs_data_get_bool(globalsettings, "_batters_hit") == True:
-            custom_stats_list.append("HBP: " + str(self.hbp))
-        if S.obs_data_get_bool(globalsettings, "_hits_allowed") == True:
-            custom_stats_list.append("Hits Allowed: " + str(self.hits))
-        if S.obs_data_get_bool(globalsettings, "_hrs_allowed") == True:
-            custom_stats_list.append("HRs Allowed: " + str(self.hrs))
-        if S.obs_data_get_bool(globalsettings, "_pitches_thrown") == True:
-            custom_stats_list.append("Pitch Count: " + str(self.pitches_thrown))
-        if S.obs_data_get_bool(globalsettings, "_stamina") == True:
-            custom_stats_list.append("Stamina: " + str(self.stamina))
-        if S.obs_data_get_bool(globalsettings, "_strikeouts") == True:
-            custom_stats_list.append("Strikeouts: " + str(self.strikeouts))
-        if S.obs_data_get_bool(globalsettings, "_outs_pitcher") == True:
-            custom_stats_list.append("Outs Pitched: " + str(self.outs))
+        stats_list = S.obs_data_get_string(globalsettings, "_stats").split(";")
+        for item in stats_list:
+            if item == "Batters Faced" or item == "1":
+                custom_stats_list.append("Batters Faced: " + str(self.batters_faced))
+            if item == "Runs Allowed" or item == "2":
+                custom_stats_list.append("Runs Allowed: " + str(self.runs_allowed))
+            if item == "Earned Runs" or item == "3":
+                custom_stats_list.append("Earned Runs: " + str(self.runs_allowed))
+            if item == "Walks" or item == "4":
+                custom_stats_list.append("Walks: " + str(self.walks))
+            if item == "HBP" or item == "5":
+                custom_stats_list.append("HBP: " + str(self.hbp))
+            if item == "Hits Allowed" or item == "6":
+                custom_stats_list.append("Hits Allowed: " + str(self.hits))
+            if item == "HRs Allowed" or item == "7":
+                custom_stats_list.append("HRs Allowed: " + str(self.hrs))
+            if item == "Pitch Count" or item == "8":
+                custom_stats_list.append("Pitch Count: " + str(self.pitches_thrown))
+            if item == "Stamina" or item == "9":
+                custom_stats_list.append("Stamina: " + str(self.stamina))
+            if item == "Strikeouts" or item == "10":
+                custom_stats_list.append("Strikeouts: " + str(self.strikeouts))
+            if item == "Outs Pitched" or item == "11":
+                custom_stats_list.append("Outs Pitched: " + str(self.outs))
 
         for line in custom_stats_list:
             stats_string += line + "\n"
@@ -192,7 +194,24 @@ def script_update(settings):
     pause_bool = S.obs_data_get_bool(settings, "_pause")
 
 def script_description():
-    return "Mario Baseball team roster images\nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!"
+    return "Mario Baseball pitcher stats\n" \
+           "OBS interface by MattGree \n" \
+           "Thanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \n" \
+           "Donations are welcomed! \n" \
+           "1. Batters Faced;   " \
+           "2. Runs Allowed;    " \
+           "3. Earned Runs; \n" \
+           "4. Walks;   " \
+           "5. HBP;   " \
+           "6. Hits Allowed;   " \
+           "7. HRs Allowed; \n" \
+           "8. Pitch Count;   " \
+           "9. Stamina;   " \
+           "10. Strikeouts;   " \
+           "11. Outs Pitched   \n" \
+           "Enter the numbers of stats you wish displayed, seperated by a ;"
+
+
 
 def add_pressed(props, prop):
     getstats.add_pitching_stats()
@@ -215,17 +234,7 @@ def remove_pressed(props, prop):
 def script_properties():
     props = S.obs_properties_create()
     S.obs_properties_add_bool(props, "_pause", "Pause")
-    S.obs_properties_add_bool(props, "_batters_faced", "Batters Faced")
-    S.obs_properties_add_bool(props, "_runs_allowed", "Runs Allowed")
-    S.obs_properties_add_bool(props, "_earned_runs", "Earned Runs")
-    S.obs_properties_add_bool(props, "_batters_walked", "Batters Walked")
-    S.obs_properties_add_bool(props, "_batters_hit", "Batters Hit")
-    S.obs_properties_add_bool(props, "_hits_allowed", "Hits Allowed")
-    S.obs_properties_add_bool(props, "_hrs_allowed", "HRs Allowed")
-    S.obs_properties_add_bool(props, "_pitches_thrown", "Batters Faced")
-    S.obs_properties_add_bool(props, "_stamina", "Stamina")
-    S.obs_properties_add_bool(props, "_strikeouts", "Strikeouts")
-    S.obs_properties_add_bool(props, "_outs_pitcher", "Outs Pitched")
+    S.obs_properties_add_text(props, "_stats", "Custom Stats", S.OBS_TEXT_DEFAULT)
     S.obs_properties_add_button(props, "_add_button", "Add", add_pressed)
     S.obs_properties_add_button(props, "_removebutton", "Remove", remove_pressed)
     OS_list = S.obs_properties_add_list(props, "_OS_list", "OS:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
