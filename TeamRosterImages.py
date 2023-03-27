@@ -27,24 +27,24 @@ class rosterimages:
         S.obs_source_release(current_scene)
 
         self.roster_image_list = [
-            ['Team0Roster0', 0, '', S.vec2()],
-            ['Team0Roster1', 0, '', S.vec2()],
-            ['Team0Roster2', 0, '', S.vec2()],
-            ['Team0Roster3', 0, '', S.vec2()],
-            ['Team0Roster4', 0, '', S.vec2()],
-            ['Team0Roster5', 0, '', S.vec2()],
-            ['Team0Roster6', 0, '', S.vec2()],
-            ['Team0Roster7', 0, '', S.vec2()],
-            ['Team0Roster8', 0, '', S.vec2()],
-            ['Team1Roster0', 0, '', S.vec2()],
-            ['Team1Roster1', 0, '', S.vec2()],
-            ['Team1Roster2', 0, '', S.vec2()],
-            ['Team1Roster3', 0, '', S.vec2()],
-            ['Team1Roster4', 0, '', S.vec2()],
-            ['Team1Roster5', 0, '', S.vec2()],
-            ['Team1Roster6', 0, '', S.vec2()],
-            ['Team1Roster7', 0, '', S.vec2()],
-            ['Team1Roster8', 0, '', S.vec2()],
+            ['AwayRoster0', 0, '', S.vec2()],
+            ['AwayRoster1', 0, '', S.vec2()],
+            ['AwayRoster2', 0, '', S.vec2()],
+            ['AwayRoster3', 0, '', S.vec2()],
+            ['AwayRoster4', 0, '', S.vec2()],
+            ['AwayRoster5', 0, '', S.vec2()],
+            ['AwayRoster6', 0, '', S.vec2()],
+            ['AwayRoster7', 0, '', S.vec2()],
+            ['AwayRoster8', 0, '', S.vec2()],
+            ['HomeRoster0', 0, '', S.vec2()],
+            ['HomeRoster1', 0, '', S.vec2()],
+            ['HomeRoster2', 0, '', S.vec2()],
+            ['HomeRoster3', 0, '', S.vec2()],
+            ['HomeRoster4', 0, '', S.vec2()],
+            ['HomeRoster5', 0, '', S.vec2()],
+            ['HomeRoster6', 0, '', S.vec2()],
+            ['HomeRoster7', 0, '', S.vec2()],
+            ['HomeRoster8', 0, '', S.vec2()],
         ]
 
         self.home_group = 'Home Roster'
@@ -196,12 +196,12 @@ class rosterimages:
 
         # Roster Data
         for team in range(2):
+            team_string = "Away" if team == 0 else "Home"
             for roster in range(9):
-                team_roster_str = f'Team {team} Roster {roster}'
+                team_roster_str = f'{team_string} Roster {roster}'
                 captain = hud_data[team_roster_str]['Captain']
                 char_id = hud_data[team_roster_str]['CharID']
                 index = roster + team * 9
-
                 self.roster_image_list[index][2] = str(char_id)
                 self.roster_image_list[index][1] = 1 if captain == 1 else 0
 
@@ -324,7 +324,7 @@ class rosterimages:
         self.scene = S.obs_scene_from_source(current_scene)
         S.obs_source_release(current_scene)
 
-        if S.obs_get_source_by_name('Team1Roster8') is not None:
+        if S.obs_get_source_by_name('HomeRoster8') is not None:
             S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.home_group), self.home_roster_loc)
             S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.away_group), self.away_roster_loc)
             S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.home_player_text_source), self.home_player_loc)
@@ -569,6 +569,9 @@ def script_load(settings):
 
     global getimage
     getimage = rosterimages()
+
+    global visible_bool
+    visible_bool = S.obs_data_get_bool(settings, '_visible')
 
     getimage.new_event = 1
     getimage.dir_scan()
