@@ -162,6 +162,9 @@ class rosterimages:
 
     def dir_scan(self):
         hud_file_path = S.obs_data_get_string(globalsettings, '_path')
+        hud_file_path = hud_file_path.replace("\\", "/")
+        print(hud_file_path)
+
         if not os.path.isfile(hud_file_path):
             return ''
 
@@ -664,11 +667,11 @@ def script_properties():
     S.obs_properties_add_button(props, '_add_button', 'Add', add_pressed)
     S.obs_properties_add_button(props, '_removebutton', 'Remove', remove_pressed)
 
-    OS_list = S.obs_properties_add_list(props, '_OS_list', 'OS:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+    OS_list = S.obs_properties_add_list(props, '_OS_list', 'HUD File Path:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(OS_list, 'Custom', 'custom')
-    S.obs_property_list_add_string(OS_list, 'Windows', 'windows')
-    S.obs_property_list_add_string(OS_list, 'MacOS', 'macOS')
-    S.obs_properties_add_text(props, '_path', 'Path to HUD json:', S.OBS_TEXT_DEFAULT)
+    S.obs_property_list_add_string(OS_list, 'Windows Default Path', 'windows')
+    S.obs_property_list_add_string(OS_list, 'MacOS Default Path', 'macOS')
+    file_path_input = S.obs_properties_add_text(props, '_path', 'HUD File Path:', S.OBS_TEXT_DEFAULT)
 
     roster_layout = S.obs_properties_add_list(props, '_roster_layout', 'Roster Layout:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(roster_layout, 'Horizontal', 'horizontal')
@@ -700,10 +703,15 @@ def OS_callback(props, prop, settings):
         current_path = str(os.path.realpath(__file__))
         HUD_Path = current_path.split('\\')[0] + '/' + current_path.split('\\')[1] + '/' + current_path.split('\\')[2] + '/Documents/Project Rio/HudFiles/decoded.hud.json'
         S.obs_data_set_string(settings, '_path', HUD_Path)
+        S.obs_property_set_visible(S.obs_properties_get(props, "_path"), False)
     elif S.obs_data_get_string(settings, '_OS_list') == 'macOS':
         current_path = str(os.path.realpath(__file__))
         HUD_Path = '/'+current_path.split('/', 3)[1] + '/' + current_path.split('/', 3)[2] + '/' + 'Library/Application Support/ProjectRio/HudFiles/decoded.hud.json'
         S.obs_data_set_string(settings, '_path', HUD_Path)
+        S.obs_property_set_visible(S.obs_properties_get(props, "_path"), False)
+    else:
+        S.obs_property_set_visible(S.obs_properties_get(props, "_path"), True)
+
     return True
 
 def layout_callback(props, prop, settings):
