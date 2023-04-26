@@ -2,6 +2,7 @@ import obspython as S
 import os
 import json
 import platform as plt
+from urllib.request import urlopen
 
 #def script_defaults(settings):
 
@@ -24,6 +25,7 @@ class pitcherstats:
         self.current_event_num = -1
 
         self.half_inning_old = 0
+        self.half_inning_cur = 0
 
         current_scene = S.obs_frontend_get_current_scene()
         self.scene = S.obs_scene_from_source(current_scene)
@@ -67,6 +69,8 @@ class pitcherstats:
 
         self.home_player = ""
         self.away_player = ""
+
+        self.calledWebInd = False
 
         if str(plt.platform()).lower()[0] == 'm':
             self.platform = 'MacOS'
@@ -116,6 +120,32 @@ class pitcherstats:
         S.obs_source_release(Batter_Stats_Text)
         S.obs_data_release(settings)
 
+    def rioWeb_stats(self):
+        #assign batter and pitcher stat variables
+        if self.half_inning_cur == 0:
+            web_data_batter = self.web_data_away["Stats"][self.b_batter]["Batting"]
+            web_data_pitcher = self.web_data_home["Stats"][self.p_pitcher]["Pitching"]
+        else:
+            web_data_batter = self.web_data_home["Stats"][self.b_batter]["Batting"]
+            web_data_pitcher = self.web_data_away["Stats"][self.p_pitcher]["Pitching"]
+
+        b_web_avg = web_data_batter["summary_hits"]/web_data_batter["summary_at_bats"]
+        b_web_hits = web_data_batter["summary_hits"]
+        b_web_hr = web_data_batter["summary_homeruns"]
+        b_web_rbi = web_data_batter["summary_rbi"]
+        b_web_k = web_data_batter["summary_strikeouts"]
+        b_web_bb = web_data_batter["summary_walks_bb"]
+        b_web_hbp = web_data_batter["summary_walks_hbp"]
+        
+        p_web_ER = web_data_pitcher["runs_allowed"]
+        p_web_ERA = 0 if web_data_pitcher["batters_faced"] == 0 else web_data_pitcher["runs_allowed"]/(web_data_pitcher["outs_pitched"]*9/3)
+        p_web_k = web_data_pitcher["strikeouts_pitched"]
+        p_web_oppAvg = web_data_pitcher["hits_allowed"]/web_data_pitcher["batters_faced"]
+
+        print('{0:.3}'.format(b_web_avg), b_web_hits, b_web_hbp, b_web_hr, b_web_k, b_web_rbi, b_web_bb)
+        print(p_web_ER, '{0:.1}'.format(p_web_ERA), p_web_k, '{0:.3}'.format(p_web_oppAvg))
+        
+
     def dir_scan(self):
         hud_file_path = S.obs_data_get_string(globalsettings, "_path")
         if not os.path.isfile(hud_file_path):
@@ -156,6 +186,7 @@ class pitcherstats:
         p_team_roster_str = teamStr + " Roster " + str(pitcher_id)
 
         # Vars to hold data for characters and teams(player)
+        self.p_pitcher = hud_data[p_team_roster_str]["CharID"]
         self.p_batters_faced = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Faced"]
         self.p_runs_allowed = hud_data[p_team_roster_str]["Defensive Stats"]["Runs Allowed"]
         self.p_earned_runs = hud_data[p_team_roster_str]["Defensive Stats"]["Earned Runs"]
@@ -168,7 +199,9 @@ class pitcherstats:
         self.p_strikeouts = hud_data[p_team_roster_str]["Defensive Stats"]["Strikeouts"]
         self.p_outs = hud_data[p_team_roster_str]["Defensive Stats"]["Outs Pitched"]
 
-        self.b_team_index = hud_data["Half Inning"]
+        self.half_inning_cur = hud_data["Half Inning"]
+
+        self.b_team_index = self.half_inning_cur
         self.b_roster_loc = hud_data["Batter Roster Loc"]
 
         b_team_roster_str = teamStr + " Roster " + str(self.b_roster_loc)
@@ -289,6 +322,8 @@ def script_load(settings):
 
     getstats.new_event = 1
     getstats.dir_scan()
+    if getstats.calledWebInd:
+        getstats.rioWeb_stats()
 
     print(getstats.scene)
 
@@ -362,9 +397,24 @@ def remove_pressed(props, prop):
     S.obs_source_release(batter_stats)
 
 def flip_teams(props, prop):
-    print("pressed")
     getstats.flip_teams()
 
+def get_web_stats(props, prop):
+    print("pressedTest")
+    url_base = "https://api.projectrio.app/stats/?"
+    url_home = url_base + "&by_char=1&username=" + getstats.home_player
+    url_away = url_base + "&by_char=1&username=" + getstats.away_player
+    
+    print(url_home)
+    print(url_away)
+
+    getstats.web_data_home = json.loads(urlopen(url_home).read())
+    print(getstats.web_data_home["Stats"]["Birdo"])
+    getstats.web_data_away = json.loads(urlopen(url_away).read())
+    print(getstats.web_data_away["Stats"]["Birdo"])
+
+    getstats.calledWebInd = True
+    
 def script_properties():
     props = S.obs_properties_create()
     S.obs_properties_add_bool(props, "_pause", "Pause")
@@ -381,6 +431,8 @@ def script_properties():
     S.obs_properties_add_text(props, "_path", "Path to HUD json:", S.OBS_TEXT_DEFAULT)
 
     S.obs_properties_add_button(props, "_flipteams", "Flip Team Locations", flip_teams)
+
+    S.obs_properties_add_button(props, "_getWebStats", "Get Web Stats", get_web_stats)
 
     S.obs_property_set_modified_callback(OS_list, OS_callback)
 
