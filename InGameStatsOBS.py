@@ -139,10 +139,11 @@ class pitcherstats:
         # Bookkeepping vars
         if "Previous Event" in hud_data.keys():
             if "Pitch" in hud_data["Previous Event"].keys():
-                team = hud_data["Previous Event"]["Pitch"]["Pitcher Team Id"]
+                teamInt = hud_data["Previous Event"]["Pitch"]["Pitcher Team Id"]
+                teamStr = "Away" if teamInt == 0 else "Home"
                 self.p_pitcher = hud_data["Previous Event"]["Pitch"]["Pitcher Char Id"]
                 for roster in range(0, 9):
-                    team_roster_str = "Team " + str(team) + " Roster " + str(roster)
+                    team_roster_str = teamStr + " Roster " + str(roster)
                     if hud_data[team_roster_str]["CharID"] == self.p_pitcher:
                         pitcher_id = roster
             else:
@@ -152,7 +153,7 @@ class pitcherstats:
             self.p_pitcher = "First Event"
             pitcher_id = 0
 
-        p_team_roster_str = "Team " + str(team) + " Roster " + str(pitcher_id)
+        p_team_roster_str = teamStr + " Roster " + str(pitcher_id)
 
         # Vars to hold data for characters and teams(player)
         self.p_batters_faced = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Faced"]
@@ -170,7 +171,7 @@ class pitcherstats:
         self.b_team_index = hud_data["Half Inning"]
         self.b_roster_loc = hud_data["Batter Roster Loc"]
 
-        b_team_roster_str = "Team " + str(self.b_team_index) + " Roster " + str(self.b_roster_loc)
+        b_team_roster_str = teamStr + " Roster " + str(self.b_roster_loc)
         self.b_batter = hud_data[b_team_roster_str]["CharID"]
         self.b_at_bats = hud_data[b_team_roster_str]["Offensive Stats"]["At Bats"]
         self.b_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Hits"]
