@@ -278,9 +278,11 @@ class pitcherstats:
         self.p_strikeouts = hud_data[p_team_roster_str]["Defensive Stats"]["Strikeouts"]
         self.p_outs = hud_data[p_team_roster_str]["Defensive Stats"]["Outs Pitched"]
 
+
         self.half_inning_cur = hud_data["Half Inning"]
 
         self.b_team_index = self.half_inning_cur
+
         b_teamStr = "Away" if self.b_team_index == 0 else "Home"
         self.b_roster_loc = hud_data["Batter Roster Loc"]
 
@@ -404,8 +406,6 @@ def script_load(settings):
     getstats.dir_scan()
     if getstats.calledWebInd:
         getstats.rioWeb_stats()
-
-    print(getstats.scene)
 
     global HUD_path
     HUD_path = S.obs_data_get_string(settings, "_path")
