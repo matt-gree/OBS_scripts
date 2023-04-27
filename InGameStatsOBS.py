@@ -71,6 +71,10 @@ class pitcherstats:
         self.away_player = ""
 
         self.calledWebInd = False
+        self.web_home_statsFound = False
+        self.web_away_statsFound = False
+        self.web_batter_statsFound = False
+        self.web_pitcher_statsFound = False
 
         if str(plt.platform()).lower()[0] == 'm':
             self.platform = 'MacOS'
@@ -122,28 +126,47 @@ class pitcherstats:
 
     def rioWeb_stats(self):
         #assign batter and pitcher stat variables
-        if self.half_inning_cur == 0:
-            web_data_batter = self.web_data_away["Stats"][self.b_batter]["Batting"]
-            web_data_pitcher = self.web_data_home["Stats"][self.p_pitcher]["Pitching"]
-        else:
-            web_data_batter = self.web_data_home["Stats"][self.b_batter]["Batting"]
-            web_data_pitcher = self.web_data_away["Stats"][self.p_pitcher]["Pitching"]
+        #home
+        self.web_batter_statsFound = False
+        self.web_pitcher_statsFound = False
+        if self.web_home_statsFound:
+            if self.half_inning_cur == 0:
+                web_data_pitcher = self.web_data_home["Stats"][self.p_pitcher]["Pitching"]
+                self.web_pitcher_statsFound = True
+            else:
+                web_data_batter = self.web_data_home["Stats"][self.b_batter]["Batting"]
+                self.web_batter_statsFound = True
 
-        b_web_avg = web_data_batter["summary_hits"]/web_data_batter["summary_at_bats"]
-        b_web_hits = web_data_batter["summary_hits"]
-        b_web_hr = web_data_batter["summary_homeruns"]
-        b_web_rbi = web_data_batter["summary_rbi"]
-        b_web_k = web_data_batter["summary_strikeouts"]
-        b_web_bb = web_data_batter["summary_walks_bb"]
-        b_web_hbp = web_data_batter["summary_walks_hbp"]
-        
-        p_web_ER = web_data_pitcher["runs_allowed"]
-        p_web_ERA = 0 if web_data_pitcher["batters_faced"] == 0 else web_data_pitcher["runs_allowed"]/(web_data_pitcher["outs_pitched"]*9/3)
-        p_web_k = web_data_pitcher["strikeouts_pitched"]
-        p_web_oppAvg = web_data_pitcher["hits_allowed"]/web_data_pitcher["batters_faced"]
+        #away
+        if self.web_away_statsFound:
+            if self.half_inning_cur == 0:
+                web_data_batter = self.web_data_away["Stats"][self.b_batter]["Batting"]
+                self.web_batter_statsFound = True
+            else:
+                web_data_pitcher = self.web_data_away["Stats"][self.p_pitcher]["Pitching"]
+                self.web_pitcher_statsFound = True
 
-        print('{0:.3}'.format(b_web_avg), b_web_hits, b_web_hbp, b_web_hr, b_web_k, b_web_rbi, b_web_bb)
-        print(p_web_ER, '{0:.1}'.format(p_web_ERA), p_web_k, '{0:.3}'.format(p_web_oppAvg))
+        print(self.web_batter_statsFound)
+        print(self.web_pitcher_statsFound)
+
+        if self.web_batter_statsFound:
+            b_web_avg = web_data_batter["summary_hits"]/web_data_batter["summary_at_bats"]
+            b_web_hits = web_data_batter["summary_hits"]
+            b_web_hr = web_data_batter["summary_homeruns"]
+            b_web_rbi = web_data_batter["summary_rbi"]
+            b_web_k = web_data_batter["summary_strikeouts"]
+            b_web_bb = web_data_batter["summary_walks_bb"]
+            b_web_hbp = web_data_batter["summary_walks_hbp"]
+
+            print("Avg:", '{0:.3f}'.format(float(b_web_avg)),"H:", b_web_hits, "HR:", b_web_hr, "RBI:", b_web_rbi, "K:",  b_web_k)
+
+        if self.web_pitcher_statsFound:    
+            p_web_ER = web_data_pitcher["runs_allowed"]
+            p_web_ERA = 0 if web_data_pitcher["batters_faced"] == 0 else web_data_pitcher["runs_allowed"]/(web_data_pitcher["outs_pitched"]*9/3)
+            p_web_k = web_data_pitcher["strikeouts_pitched"]
+            p_web_oppAvg = 0 if web_data_pitcher["batters_faced"] == 0 else web_data_pitcher["hits_allowed"]/web_data_pitcher["batters_faced"]
+            
+            print("ERA:", '{0:.1f}'.format(float(p_web_ERA)), "K:", p_web_k, "Opp Avg.:", '{0:.3f}'.format(float(p_web_oppAvg)))
         
 
     def dir_scan(self):
@@ -202,9 +225,10 @@ class pitcherstats:
         self.half_inning_cur = hud_data["Half Inning"]
 
         self.b_team_index = self.half_inning_cur
+        b_teamStr = "Away" if self.b_team_index == 0 else "Home"
         self.b_roster_loc = hud_data["Batter Roster Loc"]
 
-        b_team_roster_str = teamStr + " Roster " + str(self.b_roster_loc)
+        b_team_roster_str = b_teamStr + " Roster " + str(self.b_roster_loc)
         self.b_batter = hud_data[b_team_roster_str]["CharID"]
         self.b_at_bats = hud_data[b_team_roster_str]["Offensive Stats"]["At Bats"]
         self.b_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Hits"]
@@ -312,7 +336,7 @@ class pitcherstats:
 
 def script_load(settings):
 
-    S.timer_add(check_for_updates, 1000)
+    S.timer_add(check_for_updates, 10000)
 
     global globalsettings
     globalsettings = settings
@@ -332,8 +356,10 @@ def script_load(settings):
 
 def check_for_updates():
    if pause_bool == False:
-       getstats.dir_scan()
-       getstats.custom_stats()
+        getstats.dir_scan()
+        if getstats.calledWebInd:
+            getstats.rioWeb_stats()
+        getstats.custom_stats()
 
 
 def script_update(settings):
@@ -404,15 +430,23 @@ def get_web_stats(props, prop):
     url_base = "https://api.projectrio.app/stats/?"
     url_home = url_base + "&by_char=1&username=" + getstats.home_player
     url_away = url_base + "&by_char=1&username=" + getstats.away_player
-    
     print(url_home)
     print(url_away)
 
-    getstats.web_data_home = json.loads(urlopen(url_home).read())
-    print(getstats.web_data_home["Stats"]["Birdo"])
-    getstats.web_data_away = json.loads(urlopen(url_away).read())
-    print(getstats.web_data_away["Stats"]["Birdo"])
-
+    try:
+        getstats.web_data_home = json.loads(urlopen(url_home).read())
+        getstats.web_home_statsFound = True   
+    except:
+        getstats.web_home_statsFound = False
+    
+    try:
+        getstats.web_data_away = json.loads(urlopen(url_away).read())
+        getstats.web_away_statsFound = True    
+    except:
+        getstats.web_away_statsFound = False
+    
+    print(getstats.web_home_statsFound)
+    print(getstats.web_away_statsFound)
     getstats.calledWebInd = True
     
 def script_properties():
