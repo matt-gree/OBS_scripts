@@ -90,9 +90,7 @@ class pitcherstats:
             self.platform = 'Unknown'
 
     def flip_teams(self):
-        print("flip_teams")
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_stats_text"), self.pitching_stats_loc)
-        print(self.pitching_stats_loc.x)
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_stats_text"), self.batting_stats_loc)
 
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_stats_text"), self.pitching_stats_loc)
@@ -222,9 +220,11 @@ class pitcherstats:
         self.p_strikeouts = hud_data[p_team_roster_str]["Defensive Stats"]["Strikeouts"]
         self.p_outs = hud_data[p_team_roster_str]["Defensive Stats"]["Outs Pitched"]
 
+
         self.half_inning_cur = hud_data["Half Inning"]
 
         self.b_team_index = self.half_inning_cur
+
         b_teamStr = "Away" if self.b_team_index == 0 else "Home"
         self.b_roster_loc = hud_data["Batter Roster Loc"]
 
@@ -348,8 +348,6 @@ def script_load(settings):
     getstats.dir_scan()
     if getstats.calledWebInd:
         getstats.rioWeb_stats()
-
-    print(getstats.scene)
 
     global HUD_path
     HUD_path = S.obs_data_get_string(settings, "_path")
