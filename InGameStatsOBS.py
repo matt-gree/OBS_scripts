@@ -2,7 +2,10 @@ import obspython as S
 import os
 import json
 import platform as plt
-from urllib.request import urlopen
+from urllib.parse import urlencode
+from urllib.request import urlopen, Request
+import time
+import re
 
 #def script_defaults(settings):
 
@@ -15,6 +18,8 @@ class pitcherstats:
 
         self.pitching_stats_loc = S.vec2()
         self.batting_stats_loc = S.vec2()
+        self.web_pitching_stats_loc = S.vec2()
+        self.web_batting_stats_loc = S.vec2()
 
         self.away_team_roster = []
         self.home_team_roster = []
@@ -76,6 +81,9 @@ class pitcherstats:
         self.web_batter_statsFound = False
         self.web_pitcher_statsFound = False
 
+        self.mode_names = []
+        self.got_modes = False
+
         self.debugMode = False
 
         if str(plt.platform()).lower()[0] == 'm':
@@ -95,6 +103,7 @@ class pitcherstats:
         if self.debugMode:
             print("flip_teams")
 
+        #flip hud stats
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_stats_text"), self.pitching_stats_loc)
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_stats_text"), self.batting_stats_loc)
 
@@ -103,6 +112,16 @@ class pitcherstats:
 
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_stats_text"), self.pitching_stats_loc)
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_stats_text"), self.batting_stats_loc)
+
+        #flip web stats
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_batter_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_pitcher_stats_text"), self.web_batting_stats_loc)
+
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "web_pitcher_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "web_batter_stats_text"), self.web_batting_stats_loc)
+
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_pitcher_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_batter_stats_text"), self.web_batting_stats_loc)
 
     def add_pitching_stats(self):
         current_scene = S.obs_frontend_get_current_scene()
@@ -135,23 +154,55 @@ class pitcherstats:
         self.scene = S.obs_scene_from_source(current_scene)
         S.obs_source_release(current_scene)
 
-        settings = S.obs_data_create()
-        if self.platform == 'MacOS':
-            Web_Batter_Stats_Text = S.obs_source_create("text_ft2_source", 'web_batter_stats_text', settings, None)
-        else:
-            Web_Batter_Stats_Text = S.obs_source_create("text_gdiplus", 'web_batter_stats_text', settings, None)
-        S.obs_scene_add(self.scene, Web_Batter_Stats_Text)
-        S.obs_source_release(Web_Batter_Stats_Text)
-        S.obs_data_release(settings)
+        #check if the sources already exist.
+        old_b_source = S.obs_scene_find_source(self.scene,'web_batter_stats_text')
+        old_p_source = S.obs_scene_find_source(self.scene,'web_pitcher_stats_text')
 
-        settings = S.obs_data_create()
-        if self.platform == 'MacOS':
-            Web_Pitcher_Stats_Text = S.obs_source_create("text_ft2_source", 'web_pitcher_stats_text', settings, None)
-        else:
-            Web_Pitcher_Stats_Text = S.obs_source_create("text_gdiplus", 'web_pitcher_stats_text', settings, None)
-        S.obs_scene_add(self.scene, Web_Pitcher_Stats_Text)
-        S.obs_source_release(Web_Pitcher_Stats_Text)
-        S.obs_data_release(settings)
+        #Add batting text box
+        if old_b_source is None: #only create if it doesn't already exist
+            print("creating b")
+            settings = S.obs_data_create()
+            if self.platform == 'MacOS':
+                Web_Batter_Stats_Text = S.obs_source_create("text_ft2_source", 'web_batter_stats_text', settings, None)
+            else:
+                Web_Batter_Stats_Text = S.obs_source_create("text_gdiplus", 'web_batter_stats_text', settings, None)
+            S.obs_scene_add(self.scene, Web_Batter_Stats_Text)
+            S.obs_source_release(Web_Batter_Stats_Text)
+            S.obs_data_release(settings)
+
+        #Add pitching text box
+        if old_p_source is None: #only create if it doesn't already exist
+            print("creating p")
+            settings = S.obs_data_create()
+            if self.platform == 'MacOS':
+                Web_Pitcher_Stats_Text = S.obs_source_create("text_ft2_source", 'web_pitcher_stats_text', settings, None)
+            else:
+                Web_Pitcher_Stats_Text = S.obs_source_create("text_gdiplus", 'web_pitcher_stats_text', settings, None)
+            S.obs_scene_add(self.scene, Web_Pitcher_Stats_Text)
+            S.obs_source_release(Web_Pitcher_Stats_Text)
+            S.obs_data_release(settings)
+    
+    
+    def get_active_modes(self):
+        if self.debugMode:
+            print("Get modes")
+        
+        #parameters for the post request
+        modes_json = {
+            "Active": "true",
+            "Client": "true"
+        }
+        modes_url = "https://api.projectrio.app/tag_set/list"
+
+        #post request converted into a json file
+        modes_req = Request(modes_url, urlencode(modes_json).encode())
+        modes_string = urlopen(modes_req).read().decode('utf-8')
+        modes = json.loads(modes_string)
+
+        #compile mode names received from the API
+        for comm in modes["Tag Sets"]:
+            if comm["comm_type"] == 'Official' and comm["end_date"] > time.time():
+                self.mode_names.append(comm['name'])
 
     def rioWeb_stats(self):
         if self.debugMode:
@@ -162,20 +213,24 @@ class pitcherstats:
         self.web_pitcher_statsFound = False
         if self.web_home_statsFound:
             if self.half_inning_cur == 0:
-                web_data_pitcher = self.web_data_home["Stats"][self.p_pitcher]["Pitching"]
-                self.web_pitcher_statsFound = True
+                if self.p_pitcher in self.web_data_home["Stats"]:
+                    web_data_pitcher = self.web_data_home["Stats"][self.p_pitcher]["Pitching"]
+                    self.web_pitcher_statsFound = True
             else:
-                web_data_batter = self.web_data_home["Stats"][self.b_batter]["Batting"]
-                self.web_batter_statsFound = True
+                if self.b_batter in self.web_data_home["Stats"]:
+                    web_data_batter = self.web_data_home["Stats"][self.b_batter]["Batting"]
+                    self.web_batter_statsFound = True
 
         #away
         if self.web_away_statsFound:
             if self.half_inning_cur == 0:
-                web_data_batter = self.web_data_away["Stats"][self.b_batter]["Batting"]
-                self.web_batter_statsFound = True
+                if self.b_batter in self.web_data_away["Stats"]:
+                    web_data_batter = self.web_data_away["Stats"][self.b_batter]["Batting"]
+                    self.web_batter_statsFound = True
             else:
-                web_data_pitcher = self.web_data_away["Stats"][self.p_pitcher]["Pitching"]
-                self.web_pitcher_statsFound = True
+                if self.p_pitcher in self.web_data_away["Stats"]:
+                    web_data_pitcher = self.web_data_away["Stats"][self.p_pitcher]["Pitching"]
+                    self.web_pitcher_statsFound = True
 
         if self.debugMode:
             print("batter found", self.web_batter_statsFound)
@@ -394,7 +449,7 @@ class pitcherstats:
 
 def script_load(settings):
 
-    S.timer_add(check_for_updates, 10000)
+    S.timer_add(check_for_updates, 1000)
 
     global globalsettings
     globalsettings = settings
@@ -486,13 +541,24 @@ def get_web_stats(props, prop):
         print("get web stats")
 
     url_base = "https://api.projectrio.app/stats/?"
-    url_home = url_base + "&by_char=1&username=" + getstats.home_player
-    url_away = url_base + "&by_char=1&username=" + getstats.away_player
+    
+    #check if the stats should be filtered by game mode
+    web_stat_mode = S.obs_data_get_string(globalsettings, "_web_mode_list")
+    if web_stat_mode == "all":
+        mode_url_addition = ""
+    else:
+        mode_url_addition = "&tag=" + web_stat_mode
+
+    url_home = url_base + "&by_char=1&username=" + getstats.home_player + mode_url_addition
+    url_away = url_base + "&by_char=1&username=" + getstats.away_player + mode_url_addition
     
     if getstats.debugMode:
         print(url_home)
         print(url_away)
 
+    #check if stats were found for each player.
+    getstats.web_home_statsFound = False
+    getstats.web_away_statsFound = False
     try:
         getstats.web_data_home = json.loads(urlopen(url_home).read())
         getstats.web_home_statsFound = True   
@@ -504,12 +570,12 @@ def get_web_stats(props, prop):
         getstats.web_away_statsFound = True    
     except:
         getstats.web_away_statsFound = False
+    getstats.calledWebInd = True
     
-    print("H found:", getstats.web_home_statsFound)
-    print("A found:", getstats.web_away_statsFound)
+    print("Home stats found:", getstats.web_home_statsFound)
+    print("Away stats found:", getstats.web_away_statsFound)
 
     getstats.add_web_stats()
-    getstats.calledWebInd = True
     
 def script_properties():
     props = S.obs_properties_create()
@@ -527,6 +593,21 @@ def script_properties():
     S.obs_properties_add_text(props, "_path", "Path to HUD json:", S.OBS_TEXT_DEFAULT)
 
     S.obs_properties_add_button(props, "_flipteams", "Flip Team Locations", flip_teams)
+    
+    #add dropdown for modes to filter web stats
+    web_mode_list = S.obs_properties_add_list(props, "_web_mode_list", "Mode for Web Stats:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+    
+    #if the list of modes was already fetched, don't do it again.
+    if getstats.got_modes == False:
+        getstats.get_active_modes() 
+        getstats.got_modes = True
+
+    #add modes to the dropdown
+    S.obs_property_list_add_string(web_mode_list, "All", "all")    
+    i=0
+    while i < len(getstats.mode_names):
+        S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
+        i += 1
 
     S.obs_properties_add_button(props, "_getWebStats", "Get Web Stats", get_web_stats)
 
