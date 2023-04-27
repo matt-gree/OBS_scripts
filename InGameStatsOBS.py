@@ -52,7 +52,7 @@ class pitcherstats:
         self.p_outs = str()
         self.p_pitcher = str()
 
-
+        self.b_batter = str()
         self.b_team_index = str()
         self.b_roster_loc = str()
         self.b_at_bats = str()
