@@ -82,9 +82,7 @@ class pitcherstats:
             self.platform = 'Unknown'
 
     def flip_teams(self):
-        print("flip_teams")
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_stats_text"), self.pitching_stats_loc)
-        print(self.pitching_stats_loc.x)
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_stats_text"), self.batting_stats_loc)
 
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_stats_text"), self.pitching_stats_loc)
@@ -169,9 +167,10 @@ class pitcherstats:
         self.p_outs = hud_data[p_team_roster_str]["Defensive Stats"]["Outs Pitched"]
 
         self.b_team_index = hud_data["Half Inning"]
+        b_teamStr = "Away" if self.b_team_index == 0 else "Home"
         self.b_roster_loc = hud_data["Batter Roster Loc"]
 
-        b_team_roster_str = teamStr + " Roster " + str(self.b_roster_loc)
+        b_team_roster_str = b_teamStr + " Roster " + str(self.b_roster_loc)
         self.b_batter = hud_data[b_team_roster_str]["CharID"]
         self.b_at_bats = hud_data[b_team_roster_str]["Offensive Stats"]["At Bats"]
         self.b_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Hits"]
@@ -290,8 +289,6 @@ def script_load(settings):
     getstats.new_event = 1
     getstats.dir_scan()
 
-    print(getstats.scene)
-
     global HUD_path
     HUD_path = S.obs_data_get_string(settings, "_path")
 
@@ -362,7 +359,6 @@ def remove_pressed(props, prop):
     S.obs_source_release(batter_stats)
 
 def flip_teams(props, prop):
-    print("pressed")
     getstats.flip_teams()
 
 def script_properties():
