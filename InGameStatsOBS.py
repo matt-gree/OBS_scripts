@@ -598,9 +598,9 @@ def script_properties():
     web_mode_list = S.obs_properties_add_list(props, "_web_mode_list", "Mode for Web Stats:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     
     #if the list of modes was already fetched, don't do it again.
-    if getstats.got_modes == False:
-        getstats.get_active_modes() 
-        getstats.got_modes = True
+    #if getstats.got_modes == False:
+        #getstats.get_active_modes()
+        #getstats.got_modes = True
 
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
