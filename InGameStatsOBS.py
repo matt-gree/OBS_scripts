@@ -593,7 +593,7 @@ def script_properties():
     S.obs_properties_add_text(props, "_path", "Path to HUD json:", S.OBS_TEXT_DEFAULT)
 
     S.obs_properties_add_button(props, "_flipteams", "Flip Team Locations", flip_teams)
-    
+
     #add dropdown for modes to filter web stats
     web_mode_list = S.obs_properties_add_list(props, "_web_mode_list", "Mode for Web Stats:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     
@@ -603,11 +603,10 @@ def script_properties():
         getstats.got_modes = True
 
     #add modes to the dropdown
-    S.obs_property_list_add_string(web_mode_list, "All", "all")    
-    i=0
-    while i < len(getstats.mode_names):
+    S.obs_property_list_add_string(web_mode_list, "All", "all")
+
+    for i in range(len(getstats.mode_names)):
         S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
-        i += 1
 
     S.obs_properties_add_button(props, "_getWebStats", "Get Web Stats", get_web_stats)
 
