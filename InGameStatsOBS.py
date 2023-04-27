@@ -7,6 +7,9 @@ from urllib.request import urlopen, Request
 import time
 import re
 
+# If you run this on a mac and get an SSL error, run the following code in Termianl:
+# /Applications/Python\ 3.10/Install\ Certificates.command
+
 #def script_defaults(settings):
 
 images_directory = str(os.path.dirname(__file__)) + "/Images/"
@@ -598,15 +601,15 @@ def script_properties():
     web_mode_list = S.obs_properties_add_list(props, "_web_mode_list", "Mode for Web Stats:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     
     #if the list of modes was already fetched, don't do it again.
-    #if getstats.got_modes == False:
-        #getstats.get_active_modes()
-        #getstats.got_modes = True
+    if getstats.got_modes == False:
+        getstats.get_active_modes()
+        getstats.got_modes = True
 
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
 
-    #for i in range(len(getstats.mode_names)):
-        #S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
+    for i in range(len(getstats.mode_names)):
+        S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
 
     S.obs_properties_add_button(props, "_getWebStats", "Get Web Stats", get_web_stats)
 
