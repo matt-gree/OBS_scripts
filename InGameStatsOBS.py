@@ -76,6 +76,8 @@ class pitcherstats:
         self.web_batter_statsFound = False
         self.web_pitcher_statsFound = False
 
+        self.debugMode = False
+
         if str(plt.platform()).lower()[0] == 'm':
             self.platform = 'MacOS'
             current_path = str(os.path.realpath(__file__))
@@ -90,9 +92,10 @@ class pitcherstats:
             self.platform = 'Unknown'
 
     def flip_teams(self):
-        print("flip_teams")
+        if self.debugMode:
+            print("flip_teams")
+
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_stats_text"), self.pitching_stats_loc)
-        print(self.pitching_stats_loc.x)
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_stats_text"), self.batting_stats_loc)
 
         S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_stats_text"), self.pitching_stats_loc)
@@ -124,7 +127,35 @@ class pitcherstats:
         S.obs_source_release(Batter_Stats_Text)
         S.obs_data_release(settings)
 
+    def add_web_stats(self):
+        if self.debugMode:
+            print("add web stats start")
+
+        current_scene = S.obs_frontend_get_current_scene()
+        self.scene = S.obs_scene_from_source(current_scene)
+        S.obs_source_release(current_scene)
+
+        settings = S.obs_data_create()
+        if self.platform == 'MacOS':
+            Web_Batter_Stats_Text = S.obs_source_create("text_ft2_source", 'web_batter_stats_text', settings, None)
+        else:
+            Web_Batter_Stats_Text = S.obs_source_create("text_gdiplus", 'web_batter_stats_text', settings, None)
+        S.obs_scene_add(self.scene, Web_Batter_Stats_Text)
+        S.obs_source_release(Web_Batter_Stats_Text)
+        S.obs_data_release(settings)
+
+        settings = S.obs_data_create()
+        if self.platform == 'MacOS':
+            Web_Pitcher_Stats_Text = S.obs_source_create("text_ft2_source", 'web_pitcher_stats_text', settings, None)
+        else:
+            Web_Pitcher_Stats_Text = S.obs_source_create("text_gdiplus", 'web_pitcher_stats_text', settings, None)
+        S.obs_scene_add(self.scene, Web_Pitcher_Stats_Text)
+        S.obs_source_release(Web_Pitcher_Stats_Text)
+        S.obs_data_release(settings)
+
     def rioWeb_stats(self):
+        if self.debugMode:
+            print("web stats")
         #assign batter and pitcher stat variables
         #home
         self.web_batter_statsFound = False
@@ -146,9 +177,11 @@ class pitcherstats:
                 web_data_pitcher = self.web_data_away["Stats"][self.p_pitcher]["Pitching"]
                 self.web_pitcher_statsFound = True
 
-        print(self.web_batter_statsFound)
-        print(self.web_pitcher_statsFound)
+        if self.debugMode:
+            print("batter found", self.web_batter_statsFound)
+            print("pitcher found", self.web_pitcher_statsFound)
 
+        b_web_stats_string = "Batter: " + self.b_batter
         if self.web_batter_statsFound:
             b_web_avg = web_data_batter["summary_hits"]/web_data_batter["summary_at_bats"]
             b_web_hits = web_data_batter["summary_hits"]
@@ -158,18 +191,41 @@ class pitcherstats:
             b_web_bb = web_data_batter["summary_walks_bb"]
             b_web_hbp = web_data_batter["summary_walks_hbp"]
 
-            print("Avg:", '{0:.3f}'.format(float(b_web_avg)),"H:", b_web_hits, "HR:", b_web_hr, "RBI:", b_web_rbi, "K:",  b_web_k)
+            b_web_stats_string += "\nAvg: " + str('{0:.3f}'.format(float(b_web_avg))) + " H: " + str(b_web_hits) + " HR: " + str(b_web_hr) + " RBI: " +  str(b_web_rbi) + " K: " + str(b_web_k)
 
+
+        source = S.obs_get_source_by_name("web_batter_stats_text")
+        settings = S.obs_data_create()
+        S.obs_data_set_string(settings, "text", b_web_stats_string)
+        S.obs_source_update(source, settings)
+        S.obs_data_release(settings)
+        S.obs_source_release(source)
+
+        p_web_stats_string = "Pitcher: " + self.p_pitcher
         if self.web_pitcher_statsFound:    
             p_web_ER = web_data_pitcher["runs_allowed"]
             p_web_ERA = 0 if web_data_pitcher["batters_faced"] == 0 else web_data_pitcher["runs_allowed"]/(web_data_pitcher["outs_pitched"]*9/3)
             p_web_k = web_data_pitcher["strikeouts_pitched"]
             p_web_oppAvg = 0 if web_data_pitcher["batters_faced"] == 0 else web_data_pitcher["hits_allowed"]/web_data_pitcher["batters_faced"]
-            
-            print("ERA:", '{0:.1f}'.format(float(p_web_ERA)), "K:", p_web_k, "Opp Avg.:", '{0:.3f}'.format(float(p_web_oppAvg)))
+
+            p_web_stats_string += "\nERA: " + str('{0:.1f}'.format(float(p_web_ERA))) + " K: " + str(p_web_k) + " Opp Avg.: " + str('{0:.3f}'.format(float(p_web_oppAvg)))
+        
+        source = S.obs_get_source_by_name("web_pitcher_stats_text")
+        settings = S.obs_data_create()
+        S.obs_data_set_string(settings, "text", p_web_stats_string)
+        S.obs_source_update(source, settings)
+        S.obs_data_release(settings)
+        S.obs_source_release(source)
+
+        if self.debugMode:
+            print(b_web_stats_string)
+            print(p_web_stats_string)
         
 
     def dir_scan(self):
+        if self.debugMode:
+            print("hud stats")
+
         hud_file_path = S.obs_data_get_string(globalsettings, "_path")
         if not os.path.isfile(hud_file_path):
             return ""
@@ -426,12 +482,16 @@ def flip_teams(props, prop):
     getstats.flip_teams()
 
 def get_web_stats(props, prop):
-    print("pressedTest")
+    if getstats.debugMode:
+        print("get web stats")
+
     url_base = "https://api.projectrio.app/stats/?"
     url_home = url_base + "&by_char=1&username=" + getstats.home_player
     url_away = url_base + "&by_char=1&username=" + getstats.away_player
-    print(url_home)
-    print(url_away)
+    
+    if getstats.debugMode:
+        print(url_home)
+        print(url_away)
 
     try:
         getstats.web_data_home = json.loads(urlopen(url_home).read())
@@ -445,8 +505,10 @@ def get_web_stats(props, prop):
     except:
         getstats.web_away_statsFound = False
     
-    print(getstats.web_home_statsFound)
-    print(getstats.web_away_statsFound)
+    print("H found:", getstats.web_home_statsFound)
+    print("A found:", getstats.web_away_statsFound)
+
+    getstats.add_web_stats()
     getstats.calledWebInd = True
     
 def script_properties():
