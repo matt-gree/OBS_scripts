@@ -605,8 +605,8 @@ def script_properties():
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
 
-    for i in range(len(getstats.mode_names)):
-        S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
+    #for i in range(len(getstats.mode_names)):
+        #S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
 
     S.obs_properties_add_button(props, "_getWebStats", "Get Web Stats", get_web_stats)
 
