@@ -97,8 +97,25 @@ class pitcherstats:
         self.b_h_star_hits = str()
 
         #summary stats
+        self.b_hud_stats_string = str()
         self.b_t_stats_string = str()
+        self.b_t_avg = 0 
+        self.b_t_hits = 0
+        self.b_t_hr = 0
+        self.b_t_rbi = 0
+        self.b_t_k = 0
+        self.b_t_bb = 0
+        self.b_t_hbp = 0
+
+        self.p_hud_stats_string = str()
         self.p_t_stats_string = str()
+        self.p_t_ER = 0
+        self.p_t_ERA = 0
+        self.p_t_k = 0
+        self.p_t_oppAvg = 0
+
+        self.b_combined_text_output = str()
+        self.p_combined_text_output = str()
 
         self.image_width = 60
 
@@ -316,23 +333,23 @@ class pitcherstats:
         getstats.parse_web_stats()
 
         self.b_t_stats_string = "Batter: " + self.b_h_batter
-        b_t_avg = 0 if (self.b_w_at_bats + self.b_h_at_bats) == 0 else (self.b_w_hits + self.b_h_hits)/(self.b_w_at_bats + self.b_h_at_bats)
-        b_t_hits = self.b_w_hits + self.b_h_hits
-        b_t_hr = self.b_w_homeruns + self.b_h_homeruns
-        b_t_rbi = self.b_w_RBI + self.b_h_RBI
-        b_t_k = self.b_w_strikeouts + self.b_h_strikeouts
-        b_t_bb = self.b_w_walks + self.b_h_walks
-        b_t_hbp = self.b_w_HBP + self.b_h_HBP
+        self.b_t_avg = 0 if (self.b_w_at_bats + self.b_h_at_bats) == 0 else (self.b_w_hits + self.b_h_hits)/(self.b_w_at_bats + self.b_h_at_bats)
+        self.b_t_hits = self.b_w_hits + self.b_h_hits
+        self.b_t_hr = self.b_w_homeruns + self.b_h_homeruns
+        self.b_t_rbi = self.b_w_RBI + self.b_h_RBI
+        self.b_t_k = self.b_w_strikeouts + self.b_h_strikeouts
+        self.b_t_bb = self.b_w_walks + self.b_h_walks
+        self.b_t_hbp = self.b_w_HBP + self.b_h_HBP
 
-        self.b_t_stats_string += "\nAvg: " + str('{0:.3f}'.format(float(b_t_avg))) + " H: " + str(b_t_hits) + " HR: " + str(b_t_hr) + " RBI: " +  str(b_t_rbi) + " K: " + str(b_t_k)
+        self.b_t_stats_string += "\nAvg: " + str('{0:.3f}'.format(float(self.b_t_avg))) + " H: " + str(self.b_t_hits) + " HR: " + str(self.b_t_hr) + " RBI: " +  str(self.b_t_rbi) + " K: " + str(self.b_t_k)
 
         self.p_t_stats_string = "Pitcher: " + self.p_h_pitcher  
-        p_t_ER = self.p_w_runs_allowed + self.p_h_earned_runs
-        p_t_ERA = 0 if (self.p_w_outs + self.p_h_outs) == 0 else 9*((self.p_w_runs_allowed + self.p_h_earned_runs)/((self.p_w_outs + self.p_h_outs)/3))
-        p_t_k = self.p_w_strikeouts + self.p_h_strikeouts
-        p_t_oppAvg = 0 if (self.p_w_batters_faced + self.p_h_batters_faced) == 0 else (self.p_w_hits + self.p_h_hits)/(self.p_w_batters_faced + self.p_h_batters_faced)
+        self.p_t_ER = self.p_w_runs_allowed + self.p_h_earned_runs
+        self.p_t_ERA = 0 if (self.p_w_outs + self.p_h_outs) == 0 else 9*((self.p_w_runs_allowed + self.p_h_earned_runs)/((self.p_w_outs + self.p_h_outs)/3))
+        self.p_t_k = self.p_w_strikeouts + self.p_h_strikeouts
+        self.p_t_oppAvg = 0 if (self.p_w_batters_faced + self.p_h_batters_faced) == 0 else (self.p_w_hits + self.p_h_hits)/(self.p_w_batters_faced + self.p_h_batters_faced)
 
-        self.p_t_stats_string += "\nERA: " + str('{0:.1f}'.format(float(p_t_ERA))) + " K: " + str(p_t_k) + " Opp Avg.: " + str('{0:.3f}'.format(float(p_t_oppAvg)))
+        self.p_t_stats_string += "\nERA: " + str('{0:.1f}'.format(float(self.p_t_ERA))) + " K: " + str(self.p_t_k) + " Opp Avg.: " + str('{0:.3f}'.format(float(self.p_t_oppAvg)))
 
     def dir_scan(self):
         if self.debugMode:
@@ -370,7 +387,7 @@ class pitcherstats:
             else:
                 return self.current_event_num
         else:
-            team = 1
+            teamStr = "Home"
             self.p_h_pitcher = "First Event"
             pitcher_id = 0
 
@@ -417,6 +434,39 @@ class pitcherstats:
         if str(self.half_inning_old) != str(hud_data["Half Inning"]):
             self.flip_teams()
             self.half_inning_old = str(hud_data["Half Inning"])
+
+    def stat_output_create(self):
+        #to do: edit to make the strings within this function, and let the other functions just grab the totals.
+        b_seasonAvg_stat_string = self.b_t_stats_string 
+        b_game_stat_string = str()
+        for line in self.b_hud_stats_string[1:]:
+            b_game_stat_string += line + "\n"
+
+        p_seasonAvg_stat_string = self.p_t_stats_string 
+        p_game_stat_string = str()
+        for line in self.p_hud_stats_string[1:]:
+            p_game_stat_string += line + "\n"
+
+        self.b_combined_text_output = b_seasonAvg_stat_string + "\n" + b_game_stat_string
+        self.p_combined_text_output = p_seasonAvg_stat_string + "\n" + p_game_stat_string
+
+
+    def stat_output_update_display(self):
+        b_source = S.obs_get_source_by_name("batter_combined_stats_text")
+        if b_source is not None:
+            settings = S.obs_data_create()
+            S.obs_data_set_string(settings, "text", self.b_combined_text_output)
+            S.obs_source_update(b_source, settings)
+            S.obs_data_release(settings)
+            S.obs_source_release(b_source)
+
+        p_source = S.obs_get_source_by_name("pitcher_combined_stats_text")
+        if p_source is not None:
+            settings = S.obs_data_create()
+            S.obs_data_set_string(settings, "text", self.p_combined_text_output)
+            S.obs_source_update(p_source, settings)
+            S.obs_data_release(settings)
+            S.obs_source_release(p_source)
 
     def summary_stats_display(self):
         source = S.obs_get_source_by_name("batter_summary_stats_text")
@@ -470,6 +520,9 @@ class pitcherstats:
         for line in p_custom_stats_list:
             p_stats_string += line + "\n"
 
+        #to be used in the combined stat code
+        self.p_hud_stats_string = p_custom_stats_list
+
         source = S.obs_get_source_by_name("pitcher_stats_text")
         settings = S.obs_data_create()
         S.obs_data_set_string(settings, "text", p_stats_string)
@@ -515,6 +568,9 @@ class pitcherstats:
         for line in b_custom_stats_list:
             b_stats_string += line + "\n"
 
+        #to be used in the combined stat code
+        self.b_hud_stats_string = b_custom_stats_list
+
         source = S.obs_get_source_by_name("batter_stats_text")
         settings = S.obs_data_create()
         S.obs_data_set_string(settings, "text", b_stats_string)
@@ -547,6 +603,9 @@ def check_for_updates():
         getstats.custom_stats()
         getstats.summary_stats_display()
 
+        #new - eventually delete the other displays
+        getstats.stat_output_create()
+        getstats.stat_output_update_display()
 
 def script_update(settings):
     current_scene = S.obs_frontend_get_current_scene()
@@ -615,6 +674,45 @@ def add_summary_pressed(props, prop):
     getstats.summary_stats()
     getstats.summary_stats_display()
 
+def toggle_stat_display_pressed(props, prop):
+    #code source to be added or removed when this button is pressed
+    if getstats.debugMode:
+        print("toggle combined stats")
+
+    current_scene = S.obs_frontend_get_current_scene()
+    getstats.scene = S.obs_scene_from_source(current_scene)
+    S.obs_source_release(current_scene)
+
+    #check if the sources already exist.
+    Batter_Combined_Stats_Source = S.obs_scene_find_source(getstats.scene,'batter_combined_stats_text')
+    Pitcher_Combined_Stats_Source = S.obs_scene_find_source(getstats.scene,'pitcher_combined_stats_text')
+
+    #batting text box
+    if Batter_Combined_Stats_Source is None: #source doesn't exist, so create
+        settings = S.obs_data_create()
+        if getstats.platform == 'MacOS':
+            Batter_Combined_Stats_Source = S.obs_source_create("text_ft2_source", 'batter_combined_stats_text', settings, None)
+        else:
+            Batter_Combined_Stats_Source = S.obs_source_create("text_gdiplus", 'batter_combined_stats_text', settings, None)
+        S.obs_scene_add(getstats.scene, Batter_Combined_Stats_Source)
+        S.obs_source_release(Batter_Combined_Stats_Source)
+        S.obs_data_release(settings)
+    else: #source exists, so delete
+        S.obs_sceneitem_remove(Batter_Combined_Stats_Source)
+
+    #pitching text box
+    if Pitcher_Combined_Stats_Source is None: #source doesn't exist, so create
+        settings = S.obs_data_create()
+        if getstats.platform == 'MacOS':
+            Pitcher_Combined_Stats_Source = S.obs_source_create("text_ft2_source", 'pitcher_combined_stats_text', settings, None)
+        else:
+            Pitcher_Combined_Stats_Source = S.obs_source_create("text_gdiplus", 'pitcher_combined_stats_text', settings, None)
+        S.obs_scene_add(getstats.scene, Pitcher_Combined_Stats_Source)
+        S.obs_source_release(Pitcher_Combined_Stats_Source)
+        S.obs_data_release(settings)    
+    else: #source exists, so delete
+        S.obs_sceneitem_remove(Pitcher_Combined_Stats_Source)
+    
 def flip_teams(props, prop):
     getstats.flip_teams()
 
@@ -667,6 +765,8 @@ def script_properties():
     S.obs_properties_add_button(props, "_removebutton", "Remove Game Stats", remove_pressed)
 
     S.obs_properties_add_button(props, "_addSummaryStatsButton", "Add Summary Stats", add_summary_pressed)
+
+    S.obs_properties_add_button(props, "_toggleStatOutputButton", "Toggle Stat Display", toggle_stat_display_pressed)
 
     OS_list = S.obs_properties_add_list(props, "_OS_list", "OS:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(OS_list, "Custom", "custom")
