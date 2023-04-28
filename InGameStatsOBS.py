@@ -42,41 +42,68 @@ class pitcherstats:
         self.new_event = 0
         self.images_added = False
 
-        self.p_batters_faced = str()
-        self.p_runs_allowed = str()
-        self.p_earned_runs = str()
-        self.p_walks = str()
-        self.p_hbp = str()
-        self.p_hits = str()
-        self.p_hrs = str()
-        self.p_pitches_thrown = str()
-        self.p_stamina = str()
-        self.p_strikeouts = str()
-        self.p_outs = str()
-        self.p_pitcher = str()
+        #web stats
+        self.p_w_batters_faced = str()
+        self.p_w_runs_allowed = str()
+        self.p_w_walks = str()
+        self.p_w_hbp = str()
+        self.p_w_hits = str()
+        self.p_w_pitches_thrown = str()
+        self.p_w_strikeouts = str()
+        self.p_w_outs = str()
 
-        self.b_batter = str()
-        self.b_team_index = str()
-        self.b_roster_loc = str()
-        self.b_at_bats = str()
-        self.b_hits = str()
-        self.b_singles = str()
-        self.b_doubles = str()
-        self.b_triples = str()
-        self.b_homeruns = str()
-        self.b_successful_bunts = str()
-        self.b_sac_flys = str()
-        self.b_strikeouts = str()
-        self.b_walks = str()
-        self.b_HBP = str()
-        self.b_RBI = str()
-        self.b_steals = str()
-        self.b_star_hits = str()
+        self.b_w_at_bats = str()
+        self.b_w_hits = str()
+        self.b_w_singles = str()
+        self.b_w_doubles = str()
+        self.b_w_triples = str()
+        self.b_w_homeruns = str()
+        self.b_w_sac_flys = str()
+        self.b_w_strikeouts = str()
+        self.b_w_walks = str()
+        self.b_w_HBP = str()
+        self.b_w_RBI = str()
+
+        #hud stats
+        self.p_h_batters_faced = str()
+        self.p_h_runs_allowed = str()
+        self.p_h_earned_runs = str()
+        self.p_h_walks = str()
+        self.p_h_hbp = str()
+        self.p_h_hits = str()
+        self.p_h_hrs = str()
+        self.p_h_pitches_thrown = str()
+        self.p_h_stamina = str()
+        self.p_h_strikeouts = str()
+        self.p_h_outs = str()
+        self.p_h_pitcher = str()
+
+        self.b_h_batter = str()
+        self.b_h_team_index = str()
+        self.b_h_roster_loc = str()
+        self.b_h_at_bats = str()
+        self.b_h_hits = str()
+        self.b_h_singles = str()
+        self.b_h_doubles = str()
+        self.b_h_triples = str()
+        self.b_h_homeruns = str()
+        self.b_h_successful_bunts = str()
+        self.b_h_sac_flys = str()
+        self.b_h_strikeouts = str()
+        self.b_h_walks = str()
+        self.b_h_HBP = str()
+        self.b_h_RBI = str()
+        self.b_h_steals = str()
+        self.b_h_star_hits = str()
+
+        #summary stats
+        self.b_t_stats_string = str()
+        self.p_t_stats_string = str()
 
         self.image_width = 60
 
-        self.home_player = ""
-        self.away_player = ""
+        self.home_player = str()
+        self.away_player = str()
 
         self.calledWebInd = False
         self.web_home_statsFound = False
@@ -149,42 +176,39 @@ class pitcherstats:
         S.obs_source_release(Batter_Stats_Text)
         S.obs_data_release(settings)
 
-    def add_web_stats(self):
+    def add_summary_stats(self):
         if self.debugMode:
-            print("add web stats start")
+            print("adding summmary stats")
 
         current_scene = S.obs_frontend_get_current_scene()
         self.scene = S.obs_scene_from_source(current_scene)
         S.obs_source_release(current_scene)
 
         #check if the sources already exist.
-        old_b_source = S.obs_scene_find_source(self.scene,'web_batter_stats_text')
-        old_p_source = S.obs_scene_find_source(self.scene,'web_pitcher_stats_text')
+        old_bSummary_source = S.obs_scene_find_source(self.scene,'batter_summary_stats_text')
+        old_pSummary_source = S.obs_scene_find_source(self.scene,'pitcher_summary_stats_text')
 
         #Add batting text box
-        if old_b_source is None: #only create if it doesn't already exist
-            print("creating b")
+        if old_bSummary_source is None: #only create if it doesn't already exist
             settings = S.obs_data_create()
             if self.platform == 'MacOS':
-                Web_Batter_Stats_Text = S.obs_source_create("text_ft2_source", 'web_batter_stats_text', settings, None)
+                Batter_Summary_Stats_Text = S.obs_source_create("text_ft2_source", 'batter_summary_stats_text', settings, None)
             else:
-                Web_Batter_Stats_Text = S.obs_source_create("text_gdiplus", 'web_batter_stats_text', settings, None)
-            S.obs_scene_add(self.scene, Web_Batter_Stats_Text)
-            S.obs_source_release(Web_Batter_Stats_Text)
+                Batter_Summary_Stats_Text = S.obs_source_create("text_gdiplus", 'batter_summary_stats_text', settings, None)
+            S.obs_scene_add(self.scene, Batter_Summary_Stats_Text)
+            S.obs_source_release(Batter_Summary_Stats_Text)
             S.obs_data_release(settings)
 
         #Add pitching text box
-        if old_p_source is None: #only create if it doesn't already exist
-            print("creating p")
+        if old_pSummary_source is None: #only create if it doesn't already exist
             settings = S.obs_data_create()
             if self.platform == 'MacOS':
-                Web_Pitcher_Stats_Text = S.obs_source_create("text_ft2_source", 'web_pitcher_stats_text', settings, None)
+                Pitcher_Summary_Stats_Text = S.obs_source_create("text_ft2_source", 'pitcher_summary_stats_text', settings, None)
             else:
-                Web_Pitcher_Stats_Text = S.obs_source_create("text_gdiplus", 'web_pitcher_stats_text', settings, None)
-            S.obs_scene_add(self.scene, Web_Pitcher_Stats_Text)
-            S.obs_source_release(Web_Pitcher_Stats_Text)
-            S.obs_data_release(settings)
-    
+                Pitcher_Summary_Stats_Text = S.obs_source_create("text_gdiplus", 'pitcher_summary_stats_text', settings, None)
+            S.obs_scene_add(self.scene, Pitcher_Summary_Stats_Text)
+            S.obs_source_release(Pitcher_Summary_Stats_Text)
+            S.obs_data_release(settings)    
     
     def get_active_modes(self):
         if self.debugMode:
@@ -207,78 +231,108 @@ class pitcherstats:
             if comm["comm_type"] == 'Official' and comm["end_date"] > time.time():
                 self.mode_names.append(comm['name'])
 
-    def rioWeb_stats(self):
+    def parse_web_stats(self):
         if self.debugMode:
-            print("web stats")
+            print("parse web stats")
+        
         #assign batter and pitcher stat variables
         #home
         self.web_batter_statsFound = False
         self.web_pitcher_statsFound = False
         if self.web_home_statsFound:
             if self.half_inning_cur == 0:
-                if self.p_pitcher in self.web_data_home["Stats"]:
-                    web_data_pitcher = self.web_data_home["Stats"][self.p_pitcher]["Pitching"]
+                if self.p_h_pitcher in self.web_data_home["Stats"]:
+                    web_data_pitcher = self.web_data_home["Stats"][self.p_h_pitcher]["Pitching"]
                     self.web_pitcher_statsFound = True
             else:
-                if self.b_batter in self.web_data_home["Stats"]:
-                    web_data_batter = self.web_data_home["Stats"][self.b_batter]["Batting"]
+                if self.b_h_batter in self.web_data_home["Stats"]:
+                    web_data_batter = self.web_data_home["Stats"][self.b_h_batter]["Batting"]
                     self.web_batter_statsFound = True
 
         #away
         if self.web_away_statsFound:
             if self.half_inning_cur == 0:
-                if self.b_batter in self.web_data_away["Stats"]:
-                    web_data_batter = self.web_data_away["Stats"][self.b_batter]["Batting"]
+                if self.b_h_batter in self.web_data_away["Stats"]:
+                    web_data_batter = self.web_data_away["Stats"][self.b_h_batter]["Batting"]
                     self.web_batter_statsFound = True
             else:
-                if self.p_pitcher in self.web_data_away["Stats"]:
-                    web_data_pitcher = self.web_data_away["Stats"][self.p_pitcher]["Pitching"]
+                if self.p_h_pitcher in self.web_data_away["Stats"]:
+                    web_data_pitcher = self.web_data_away["Stats"][self.p_h_pitcher]["Pitching"]
                     self.web_pitcher_statsFound = True
 
         if self.debugMode:
             print("batter found", self.web_batter_statsFound)
             print("pitcher found", self.web_pitcher_statsFound)
 
-        b_web_stats_string = "Batter: " + self.b_batter
         if self.web_batter_statsFound:
-            b_web_avg = web_data_batter["summary_hits"]/web_data_batter["summary_at_bats"]
-            b_web_hits = web_data_batter["summary_hits"]
-            b_web_hr = web_data_batter["summary_homeruns"]
-            b_web_rbi = web_data_batter["summary_rbi"]
-            b_web_k = web_data_batter["summary_strikeouts"]
-            b_web_bb = web_data_batter["summary_walks_bb"]
-            b_web_hbp = web_data_batter["summary_walks_hbp"]
+            self.b_w_at_bats = web_data_batter["summary_at_bats"]
+            self.b_w_hits = web_data_batter["summary_hits"]
+            self.b_w_singles = web_data_batter["summary_singles"]
+            self.b_w_doubles = web_data_batter["summary_doubles"]
+            self.b_w_triples = web_data_batter["summary_triples"]
+            self.b_w_homeruns = web_data_batter["summary_homeruns"]
+            self.b_w_sac_flys = web_data_batter["summary_sac_flys"]
+            self.b_w_strikeouts = web_data_batter["summary_strikeouts"]
+            self.b_w_walks = web_data_batter["summary_walks_bb"]
+            self.b_w_HBP = web_data_batter["summary_walks_hbp"]
+            self.b_w_RBI = web_data_batter["summary_rbi"]
+        else:
+            self.b_w_at_bats = 0
+            self.b_w_hits = 0
+            self.b_w_singles = 0
+            self.b_w_doubles = 0
+            self.b_w_triples = 0
+            self.b_w_homeruns = 0
+            self.b_w_sac_flys = 0
+            self.b_w_strikeouts = 0
+            self.b_w_walks = 0
+            self.b_w_HBP = 0
+            self.b_w_RBI = 0
 
-            b_web_stats_string += "\nAvg: " + str('{0:.3f}'.format(float(b_web_avg))) + " H: " + str(b_web_hits) + " HR: " + str(b_web_hr) + " RBI: " +  str(b_web_rbi) + " K: " + str(b_web_k)
+        if self.web_pitcher_statsFound:
+            self.p_w_batters_faced = web_data_pitcher["batters_faced"]
+            self.p_w_runs_allowed = web_data_pitcher["runs_allowed"]
+            self.p_w_walks = web_data_pitcher["walks_bb"]
+            self.p_w_hbp = web_data_pitcher["walks_hbp"]
+            self.p_w_hits = web_data_pitcher["hits_allowed"]
+            self.p_w_pitches_thrown = web_data_pitcher["total_pitches"]
+            self.p_w_strikeouts = web_data_pitcher["strikeouts_pitched"]
+            self.p_w_outs = web_data_pitcher["outs_pitched"]
+        else:
+            self.p_w_batters_faced = 0
+            self.p_w_runs_allowed = 0
+            self.p_w_walks = 0
+            self.p_w_hbp = 0
+            self.p_w_hits = 0
+            self.p_w_pitches_thrown = 0
+            self.p_w_strikeouts = 0
+            self.p_w_outs = 0
 
-
-        source = S.obs_get_source_by_name("web_batter_stats_text")
-        settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", b_web_stats_string)
-        S.obs_source_update(source, settings)
-        S.obs_data_release(settings)
-        S.obs_source_release(source)
-
-        p_web_stats_string = "Pitcher: " + self.p_pitcher
-        if self.web_pitcher_statsFound:    
-            p_web_ER = web_data_pitcher["runs_allowed"]
-            p_web_ERA = 0 if web_data_pitcher["batters_faced"] == 0 else web_data_pitcher["runs_allowed"]/(web_data_pitcher["outs_pitched"]*9/3)
-            p_web_k = web_data_pitcher["strikeouts_pitched"]
-            p_web_oppAvg = 0 if web_data_pitcher["batters_faced"] == 0 else web_data_pitcher["hits_allowed"]/web_data_pitcher["batters_faced"]
-
-            p_web_stats_string += "\nERA: " + str('{0:.1f}'.format(float(p_web_ERA))) + " K: " + str(p_web_k) + " Opp Avg.: " + str('{0:.3f}'.format(float(p_web_oppAvg)))
-        
-        source = S.obs_get_source_by_name("web_pitcher_stats_text")
-        settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", p_web_stats_string)
-        S.obs_source_update(source, settings)
-        S.obs_data_release(settings)
-        S.obs_source_release(source)
-
+    def summary_stats(self):
         if self.debugMode:
-            print(b_web_stats_string)
-            print(p_web_stats_string)
-        
+            print("summary stats")
+
+        #update web stat variables
+        getstats.parse_web_stats()
+
+        self.b_t_stats_string = "Batter: " + self.b_h_batter
+        b_t_avg = 0 if (self.b_w_at_bats + self.b_h_at_bats) == 0 else (self.b_w_hits + self.b_h_hits)/(self.b_w_at_bats + self.b_h_at_bats)
+        b_t_hits = self.b_w_hits + self.b_h_hits
+        b_t_hr = self.b_w_homeruns + self.b_h_homeruns
+        b_t_rbi = self.b_w_RBI + self.b_h_RBI
+        b_t_k = self.b_w_strikeouts + self.b_h_strikeouts
+        b_t_bb = self.b_w_walks + self.b_h_walks
+        b_t_hbp = self.b_w_HBP + self.b_h_HBP
+
+        self.b_t_stats_string += "\nAvg: " + str('{0:.3f}'.format(float(b_t_avg))) + " H: " + str(b_t_hits) + " HR: " + str(b_t_hr) + " RBI: " +  str(b_t_rbi) + " K: " + str(b_t_k)
+
+        self.p_t_stats_string = "Pitcher: " + self.p_h_pitcher  
+        p_t_ER = self.p_w_runs_allowed + self.p_h_earned_runs
+        p_t_ERA = 0 if (self.p_w_outs + self.p_h_outs) == 0 else 9*((self.p_w_runs_allowed + self.p_h_earned_runs)/((self.p_w_outs + self.p_h_outs)/3))
+        p_t_k = self.p_w_strikeouts + self.p_h_strikeouts
+        p_t_oppAvg = 0 if (self.p_w_batters_faced + self.p_h_batters_faced) == 0 else (self.p_w_hits + self.p_h_hits)/(self.p_w_batters_faced + self.p_h_batters_faced)
+
+        self.p_t_stats_string += "\nERA: " + str('{0:.1f}'.format(float(p_t_ERA))) + " K: " + str(p_t_k) + " Opp Avg.: " + str('{0:.3f}'.format(float(p_t_oppAvg)))
 
     def dir_scan(self):
         if self.debugMode:
@@ -308,92 +362,110 @@ class pitcherstats:
             if "Pitch" in hud_data["Previous Event"].keys():
                 teamInt = hud_data["Previous Event"]["Pitch"]["Pitcher Team Id"]
                 teamStr = "Away" if teamInt == 0 else "Home"
-                self.p_pitcher = hud_data["Previous Event"]["Pitch"]["Pitcher Char Id"]
+                self.p_h_pitcher = hud_data["Previous Event"]["Pitch"]["Pitcher Char Id"]
                 for roster in range(0, 9):
                     team_roster_str = teamStr + " Roster " + str(roster)
-                    if hud_data[team_roster_str]["CharID"] == self.p_pitcher:
+                    if hud_data[team_roster_str]["CharID"] == self.p_h_pitcher:
                         pitcher_id = roster
             else:
                 return self.current_event_num
         else:
             team = 1
-            self.p_pitcher = "First Event"
+            self.p_h_pitcher = "First Event"
             pitcher_id = 0
 
         p_team_roster_str = teamStr + " Roster " + str(pitcher_id)
 
         # Vars to hold data for characters and teams(player)
-        self.p_pitcher = hud_data[p_team_roster_str]["CharID"]
-        self.p_batters_faced = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Faced"]
-        self.p_runs_allowed = hud_data[p_team_roster_str]["Defensive Stats"]["Runs Allowed"]
-        self.p_earned_runs = hud_data[p_team_roster_str]["Defensive Stats"]["Earned Runs"]
-        self.p_walks = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Walked"]
-        self.p_hbp = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Hit"]
-        self.p_hits = hud_data[p_team_roster_str]["Defensive Stats"]["Hits Allowed"]
-        self.p_hrs = hud_data[p_team_roster_str]["Defensive Stats"]["HRs Allowed"]
-        self.p_pitches_thrown = hud_data[p_team_roster_str]["Defensive Stats"]["Pitches Thrown"]
-        self.p_stamina = hud_data[p_team_roster_str]["Defensive Stats"]["Stamina"]
-        self.p_strikeouts = hud_data[p_team_roster_str]["Defensive Stats"]["Strikeouts"]
-        self.p_outs = hud_data[p_team_roster_str]["Defensive Stats"]["Outs Pitched"]
-
+        self.p_h_pitcher = hud_data[p_team_roster_str]["CharID"]
+        self.p_h_batters_faced = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Faced"]
+        self.p_h_runs_allowed = hud_data[p_team_roster_str]["Defensive Stats"]["Runs Allowed"]
+        self.p_h_earned_runs = hud_data[p_team_roster_str]["Defensive Stats"]["Earned Runs"]
+        self.p_h_walks = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Walked"]
+        self.p_h_hbp = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Hit"]
+        self.p_h_hits = hud_data[p_team_roster_str]["Defensive Stats"]["Hits Allowed"]
+        self.p_h_hrs = hud_data[p_team_roster_str]["Defensive Stats"]["HRs Allowed"]
+        self.p_h_pitches_thrown = hud_data[p_team_roster_str]["Defensive Stats"]["Pitches Thrown"]
+        self.p_h_stamina = hud_data[p_team_roster_str]["Defensive Stats"]["Stamina"]
+        self.p_h_strikeouts = hud_data[p_team_roster_str]["Defensive Stats"]["Strikeouts"]
+        self.p_h_outs = hud_data[p_team_roster_str]["Defensive Stats"]["Outs Pitched"]
 
         self.half_inning_cur = hud_data["Half Inning"]
 
-        self.b_team_index = self.half_inning_cur
+        self.b_h_team_index = self.half_inning_cur
 
-        b_teamStr = "Away" if self.b_team_index == 0 else "Home"
-        self.b_roster_loc = hud_data["Batter Roster Loc"]
+        b_teamStr = "Away" if self.b_h_team_index == 0 else "Home"
+        self.b_h_roster_loc = hud_data["Batter Roster Loc"]
 
-        b_team_roster_str = b_teamStr + " Roster " + str(self.b_roster_loc)
-        self.b_batter = hud_data[b_team_roster_str]["CharID"]
-        self.b_at_bats = hud_data[b_team_roster_str]["Offensive Stats"]["At Bats"]
-        self.b_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Hits"]
-        self.b_singles = hud_data[b_team_roster_str]["Offensive Stats"]["Singles"]
-        self.b_doubles = hud_data[b_team_roster_str]["Offensive Stats"]["Doubles"]
-        self.b_triples = hud_data[b_team_roster_str]["Offensive Stats"]["Triples"]
-        self.b_homeruns = hud_data[b_team_roster_str]["Offensive Stats"]["Homeruns"]
-        self.b_successful_bunts = hud_data[b_team_roster_str]["Offensive Stats"]["Successful Bunts"]
-        self.b_sac_flys = hud_data[b_team_roster_str]["Offensive Stats"]["Sac Flys"]
-        self.b_strikeouts = hud_data[b_team_roster_str]["Offensive Stats"]["Strikeouts"]
-        self.b_walks = hud_data[b_team_roster_str]["Offensive Stats"]["Walks (4 Balls)"]
-        self.b_HBP = hud_data[b_team_roster_str]["Offensive Stats"]["Walks (Hit)"]
-        self.b_RBI = hud_data[b_team_roster_str]["Offensive Stats"]["RBI"]
-        self.b_steals = hud_data[b_team_roster_str]["Offensive Stats"]["Bases Stolen"]
-        self.b_star_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Star Hits"]
+        b_team_roster_str = b_teamStr + " Roster " + str(self.b_h_roster_loc)
+        self.b_h_batter = hud_data[b_team_roster_str]["CharID"]
+        self.b_h_at_bats = hud_data[b_team_roster_str]["Offensive Stats"]["At Bats"]
+        self.b_h_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Hits"]
+        self.b_h_singles = hud_data[b_team_roster_str]["Offensive Stats"]["Singles"]
+        self.b_h_doubles = hud_data[b_team_roster_str]["Offensive Stats"]["Doubles"]
+        self.b_h_triples = hud_data[b_team_roster_str]["Offensive Stats"]["Triples"]
+        self.b_h_homeruns = hud_data[b_team_roster_str]["Offensive Stats"]["Homeruns"]
+        self.b_h_successful_bunts = hud_data[b_team_roster_str]["Offensive Stats"]["Successful Bunts"]
+        self.b_h_sac_flys = hud_data[b_team_roster_str]["Offensive Stats"]["Sac Flys"]
+        self.b_h_strikeouts = hud_data[b_team_roster_str]["Offensive Stats"]["Strikeouts"]
+        self.b_h_walks = hud_data[b_team_roster_str]["Offensive Stats"]["Walks (4 Balls)"]
+        self.b_h_HBP = hud_data[b_team_roster_str]["Offensive Stats"]["Walks (Hit)"]
+        self.b_h_RBI = hud_data[b_team_roster_str]["Offensive Stats"]["RBI"]
+        self.b_h_steals = hud_data[b_team_roster_str]["Offensive Stats"]["Bases Stolen"]
+        self.b_h_star_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Star Hits"]
 
         if str(self.half_inning_old) != str(hud_data["Half Inning"]):
             self.flip_teams()
             self.half_inning_old = str(hud_data["Half Inning"])
 
+    def summary_stats_display(self):
+        source = S.obs_get_source_by_name("batter_summary_stats_text")
+        settings = S.obs_data_create()
+        S.obs_data_set_string(settings, "text", self.b_t_stats_string)
+        S.obs_source_update(source, settings)
+        S.obs_data_release(settings)
+        S.obs_source_release(source)
+        
+        source = S.obs_get_source_by_name("pitcher_summary_stats_text")
+        settings = S.obs_data_create()
+        S.obs_data_set_string(settings, "text", self.p_t_stats_string)
+        S.obs_source_update(source, settings)
+        S.obs_data_release(settings)
+        S.obs_source_release(source)
+
+        if self.debugMode:
+            print(self.b_t_stats_string)
+            print(self.p_t_stats_string)
+
     def custom_stats(self):
         p_custom_stats_list = []
-        if self.p_pitcher != "First Event":
-            p_custom_stats_list.append("Pitcher: " + str(self.p_pitcher))
+        if self.p_h_pitcher != "First Event":
+            p_custom_stats_list.append("Pitcher: " + str(self.p_h_pitcher))
         p_stats_string = ""
         p_stats_list = S.obs_data_get_string(globalsettings, "_pitching_stats").split(";")
         for item in p_stats_list:
-            if item == "Batters Faced" or item == "1" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Batters Faced: " + str(self.p_batters_faced))
-            if item == "Runs Allowed" or item == "2" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Runs Allowed: " + str(self.p_runs_allowed))
-            if item == "Earned Runs" or item == "3" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Earned Runs: " + str(self.p_runs_allowed))
-            if item == "Walks" or item == "4" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Walks: " + str(self.p_walks))
-            if item == "HBP" or item == "5" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("HBP: " + str(self.p_hbp))
-            if item == "Hits Allowed" or item == "6" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Hits Allowed: " + str(self.p_hits))
-            if item == "HRs Allowed" or item == "7" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("HRs Allowed: " + str(self.p_hrs))
-            if item == "Pitch Count" or item == "8" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Pitch Count: " + str(self.p_pitches_thrown))
-            if item == "Stamina" or item == "9" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Stamina: " + str(self.p_stamina))
-            if item == "Strikeouts" or item == "10" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Strikeouts: " + str(self.p_strikeouts))
-            if item == "Outs Pitched" or item == "11" and self.p_pitcher != "First Event":
-                p_custom_stats_list.append("Outs Pitched: " + str(self.p_outs))
+            if item == "Batters Faced" or item == "1" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Batters Faced: " + str(self.p_h_batters_faced))
+            if item == "Runs Allowed" or item == "2" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Runs Allowed: " + str(self.p_h_runs_allowed))
+            if item == "Earned Runs" or item == "3" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Earned Runs: " + str(self.p_h_runs_allowed))
+            if item == "Walks" or item == "4" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Walks: " + str(self.p_h_walks))
+            if item == "HBP" or item == "5" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("HBP: " + str(self.p_h_hbp))
+            if item == "Hits Allowed" or item == "6" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Hits Allowed: " + str(self.p_h_hits))
+            if item == "HRs Allowed" or item == "7" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("HRs Allowed: " + str(self.p_h_hrs))
+            if item == "Pitch Count" or item == "8" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Pitch Count: " + str(self.p_h_pitches_thrown))
+            if item == "Stamina" or item == "9" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Stamina: " + str(self.p_h_stamina))
+            if item == "Strikeouts" or item == "10" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Strikeouts: " + str(self.p_h_strikeouts))
+            if item == "Outs Pitched" or item == "11" and self.p_h_pitcher != "First Event":
+                p_custom_stats_list.append("Outs Pitched: " + str(self.p_h_outs))
 
         for line in p_custom_stats_list:
             p_stats_string += line + "\n"
@@ -406,38 +478,38 @@ class pitcherstats:
         S.obs_source_release(source)
 
         b_custom_stats_list = []
-        b_custom_stats_list.append("Batter: " + str(self.b_batter))
+        b_custom_stats_list.append("Batter: " + str(self.b_h_batter))
         b_stats_string = ""
         p_stats_list = S.obs_data_get_string(globalsettings, "_batting_stats").split(";")
         for item in p_stats_list:
             if item == "At Bats" or item == "1":
-                b_custom_stats_list.append("At Bats: " + str(self.b_at_bats))
+                b_custom_stats_list.append("At Bats: " + str(self.b_h_at_bats))
             if item == "Hits" or item == "2":
-                b_custom_stats_list.append("Hits: " + str(self.b_hits))
+                b_custom_stats_list.append("Hits: " + str(self.b_h_hits))
             if item == "Singles" or item == "3":
-                b_custom_stats_list.append("Singles: " + str(self.b_singles))
+                b_custom_stats_list.append("Singles: " + str(self.b_h_singles))
             if item == "Doubles" or item == "4":
-                b_custom_stats_list.append("Doubles: " + str(self.b_doubles))
+                b_custom_stats_list.append("Doubles: " + str(self.b_h_doubles))
             if item == "Triples" or item == "5":
-                b_custom_stats_list.append("Triples: " + str(self.b_triples))
+                b_custom_stats_list.append("Triples: " + str(self.b_h_triples))
             if item == "Home Runs" or item == "6":
-                b_custom_stats_list.append("Home Runs: " + str(self.b_homeruns))
+                b_custom_stats_list.append("Home Runs: " + str(self.b_h_homeruns))
             if item == "Sucessful Bunts" or item == "7":
-                b_custom_stats_list.append("Sucessful Bunts: " + str(self.b_successful_bunts))
+                b_custom_stats_list.append("Sucessful Bunts: " + str(self.b_h_successful_bunts))
             if item == "Sac Flys" or item == "8":
-                b_custom_stats_list.append("Sac Flys: " + str(self.b_sac_flys))
+                b_custom_stats_list.append("Sac Flys: " + str(self.b_h_sac_flys))
             if item == "Strikeouts" or item == "9":
-                b_custom_stats_list.append("Strikeouts: " + str(self.b_walks))
+                b_custom_stats_list.append("Strikeouts: " + str(self.b_h_walks))
             if item == "Walks" or item == "10":
-                b_custom_stats_list.append("Walks: " + str(self.b_walks))
+                b_custom_stats_list.append("Walks: " + str(self.b_h_walks))
             if item == "HBP" or item == "11":
-                b_custom_stats_list.append("HBP: " + str(self.b_HBP))
+                b_custom_stats_list.append("HBP: " + str(self.b_h_HBP))
             if item == "RBI" or item == "12":
-                b_custom_stats_list.append("RBI: " + str(self.b_RBI))
+                b_custom_stats_list.append("RBI: " + str(self.b_h_RBI))
             if item == "Steals" or item == "13":
-                b_custom_stats_list.append("Steals: " + str(self.b_steals))
+                b_custom_stats_list.append("Steals: " + str(self.b_h_steals))
             if item == "Star Hits" or item == "14":
-                b_custom_stats_list.append("Star Hits: " + str(self.b_star_hits))
+                b_custom_stats_list.append("Star Hits: " + str(self.b_h_star_hits))
 
 
         for line in b_custom_stats_list:
@@ -462,18 +534,18 @@ def script_load(settings):
 
     getstats.new_event = 1
     getstats.dir_scan()
-    if getstats.calledWebInd:
-        getstats.rioWeb_stats()
 
+    getstats.summary_stats()
+    
     global HUD_path
     HUD_path = S.obs_data_get_string(settings, "_path")
 
 def check_for_updates():
    if pause_bool == False:
         getstats.dir_scan()
-        if getstats.calledWebInd:
-            getstats.rioWeb_stats()
+        getstats.summary_stats()
         getstats.custom_stats()
+        getstats.summary_stats_display()
 
 
 def script_update(settings):
@@ -536,6 +608,13 @@ def remove_pressed(props, prop):
     S.obs_source_remove(batter_stats)
     S.obs_source_release(batter_stats)
 
+def add_summary_pressed(props, prop):
+    getstats.add_summary_stats()
+    getstats.dir_scan()
+    getstats.parse_web_stats()
+    getstats.summary_stats()
+    getstats.summary_stats_display()
+
 def flip_teams(props, prop):
     getstats.flip_teams()
 
@@ -577,8 +656,6 @@ def get_web_stats(props, prop):
     
     print("Home stats found:", getstats.web_home_statsFound)
     print("Away stats found:", getstats.web_away_statsFound)
-
-    getstats.add_web_stats()
     
 def script_properties():
     props = S.obs_properties_create()
@@ -586,8 +663,10 @@ def script_properties():
     S.obs_properties_add_text(props, "_pitching_stats", "Pitching Stats", S.OBS_TEXT_DEFAULT)
     S.obs_properties_add_text(props, "_batting_stats", "Batting Stats", S.OBS_TEXT_DEFAULT)
 
-    S.obs_properties_add_button(props, "_add_button", "Add", add_pressed)
-    S.obs_properties_add_button(props, "_removebutton", "Remove", remove_pressed)
+    S.obs_properties_add_button(props, "_add_button", "Add Game Stats", add_pressed)
+    S.obs_properties_add_button(props, "_removebutton", "Remove Game Stats", remove_pressed)
+
+    S.obs_properties_add_button(props, "_addSummaryStatsButton", "Add Summary Stats", add_summary_pressed)
 
     OS_list = S.obs_properties_add_list(props, "_OS_list", "OS:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(OS_list, "Custom", "custom")
