@@ -95,8 +95,10 @@ class pitcherstats:
         self.b_h_RBI = 0
         self.b_h_steals = 0
         self.b_h_star_hits = 0
+        self.BATTER_HUD_STATS_LIST = []
 
         #summary stats
+
         self.b_hud_stats_string = str()
         self.b_t_stats_string = str()
         self.b_t_avg = 0 
@@ -116,6 +118,7 @@ class pitcherstats:
 
         self.b_combined_text_output = str()
         self.p_combined_text_output = str()
+
 
         self.image_width = 60
 
@@ -341,7 +344,7 @@ class pitcherstats:
         self.b_t_bb = self.b_w_walks + self.b_h_walks
         self.b_t_hbp = self.b_w_HBP + self.b_h_HBP
 
-        self.b_t_stats_string += "\nAvg: " + str('{0:.3f}'.format(float(self.b_t_avg))) + " H: " + str(self.b_t_hits) + " HR: " + str(self.b_t_hr) + " RBI: " +  str(self.b_t_rbi) + " K: " + str(self.b_t_k)
+        self.b_t_stats_string += "\nAvg: " + str('{0:.3f}'.format(float(self.b_t_avg))) + " H: " + str(self.b_t_hits) + " HR: " + str(self.b_t_hr) + " RBI: " +  str(self.b_t_rbi) + " SO: " + str(self.b_t_k)
 
         self.p_t_stats_string = "Pitcher: " + self.p_h_pitcher  
         self.p_t_ER = self.p_w_runs_allowed + self.p_h_earned_runs
@@ -430,6 +433,23 @@ class pitcherstats:
         self.b_h_RBI = hud_data[b_team_roster_str]["Offensive Stats"]["RBI"]
         self.b_h_steals = hud_data[b_team_roster_str]["Offensive Stats"]["Bases Stolen"]
         self.b_h_star_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Star Hits"]
+
+        self.BATTER_HUD_STATS_LIST = [
+            self.b_h_at_bats,
+            self.b_h_hits,
+            self.b_h_singles,
+            self.b_h_doubles,
+            self.b_h_triples,
+            self.b_h_homeruns,
+            self.b_h_successful_bunts,
+            self.b_h_sac_flys,
+            self.b_h_strikeouts,
+            self.b_h_walks,
+            self.b_h_HBP,
+            self.b_h_RBI,
+            self.b_h_steals,
+            self.b_h_star_hits,
+        ]
 
         if str(self.half_inning_old) != str(hud_data["Half Inning"]):
             self.flip_teams()
@@ -533,37 +553,41 @@ class pitcherstats:
         b_custom_stats_list = []
         b_custom_stats_list.append("Batter: " + str(self.b_h_batter))
         b_stats_string = ""
-        p_stats_list = S.obs_data_get_string(globalsettings, "_batting_stats").split(";")
-        for item in p_stats_list:
-            if item == "At Bats" or item == "1":
-                b_custom_stats_list.append("At Bats: " + str(self.b_h_at_bats))
-            if item == "Hits" or item == "2":
-                b_custom_stats_list.append("Hits: " + str(self.b_h_hits))
-            if item == "Singles" or item == "3":
-                b_custom_stats_list.append("Singles: " + str(self.b_h_singles))
-            if item == "Doubles" or item == "4":
-                b_custom_stats_list.append("Doubles: " + str(self.b_h_doubles))
-            if item == "Triples" or item == "5":
-                b_custom_stats_list.append("Triples: " + str(self.b_h_triples))
-            if item == "Home Runs" or item == "6":
-                b_custom_stats_list.append("Home Runs: " + str(self.b_h_homeruns))
-            if item == "Sucessful Bunts" or item == "7":
-                b_custom_stats_list.append("Sucessful Bunts: " + str(self.b_h_successful_bunts))
-            if item == "Sac Flys" or item == "8":
-                b_custom_stats_list.append("Sac Flys: " + str(self.b_h_sac_flys))
-            if item == "Strikeouts" or item == "9":
-                b_custom_stats_list.append("Strikeouts: " + str(self.b_h_walks))
-            if item == "Walks" or item == "10":
-                b_custom_stats_list.append("Walks: " + str(self.b_h_walks))
-            if item == "HBP" or item == "11":
-                b_custom_stats_list.append("HBP: " + str(self.b_h_HBP))
-            if item == "RBI" or item == "12":
-                b_custom_stats_list.append("RBI: " + str(self.b_h_RBI))
-            if item == "Steals" or item == "13":
-                b_custom_stats_list.append("Steals: " + str(self.b_h_steals))
-            if item == "Star Hits" or item == "14":
-                b_custom_stats_list.append("Star Hits: " + str(self.b_h_star_hits))
-
+        b_custom_stats_list.append("Season Stats:")
+        b_custom_stats_list.append("Average: " + str('{0:.3f}'.format(float(self.b_t_avg))))
+        b_custom_stats_list.append("Hits: " + str(self.b_t_hits))
+        if self.b_t_hr != 0: b_custom_stats_list.append("Season Hits: " + str(self.b_t_hr))
+        b_custom_stats_list.append("Current Game: ")
+        for i in range(len(self.BATTER_HUD_STATS_LIST)):
+            if self.BATTER_HUD_STATS_LIST[i] != 0:
+                if i == 0:
+                    b_custom_stats_list.append("At Bats: " + str(self.b_h_at_bats))
+                #if i == 1:
+                    #b_custom_stats_list.append("Hits: " + str(self.b_h_hits))
+                if i == 2:
+                    b_custom_stats_list.append("Singles: " + str(self.b_h_singles))
+                if i == 3:
+                    b_custom_stats_list.append("Doubles: " + str(self.b_h_doubles))
+                if i == 4:
+                    b_custom_stats_list.append("Triples: " + str(self.b_h_triples))
+                if i == 5:
+                    b_custom_stats_list.append("Home Runs: " + str(self.b_h_homeruns))
+                if i == 6:
+                    b_custom_stats_list.append("Sucessful Bunts: " + str(self.b_h_successful_bunts))
+                if i == 7:
+                    b_custom_stats_list.append("Sac Flys: " + str(self.b_h_sac_flys))
+                if i == 8:
+                    b_custom_stats_list.append("Strikeouts: " + str(self.b_h_walks))
+                if i == 9:
+                    b_custom_stats_list.append("Walks: " + str(self.b_h_walks))
+                if i == 10:
+                    b_custom_stats_list.append("HBP: " + str(self.b_h_HBP))
+                if i == 11:
+                    b_custom_stats_list.append("RBI: " + str(self.b_h_RBI))
+                if i == 12:
+                    b_custom_stats_list.append("Steals: " + str(self.b_h_steals))
+                if i == 13:
+                    b_custom_stats_list.append("Star Hits: " + str(self.b_h_star_hits))
 
         for line in b_custom_stats_list:
             b_stats_string += line + "\n"
@@ -787,8 +811,12 @@ def script_properties():
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
 
-    for i in range(len(getstats.mode_names)):
-        S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
+    S.obs_property_list_add_string(web_mode_list, 'StarsOffSeason5', 'StarsOffSeason5')
+    S.obs_property_list_add_string(web_mode_list, 'StarsOffSeason5', 'StarsOffSeason5')
+    S.obs_property_list_add_string(web_mode_list, 'StarsOnSeason5', 'StarsOnSeason5')
+    S.obs_property_list_add_string(web_mode_list, 'BigBallaSeason5', 'BigBallaSeason5')
+    # for i in range(len(getstats.mode_names)):
+    # S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
 
     S.obs_properties_add_button(props, "_getWebStats", "Get Web Stats", get_web_stats)
 
