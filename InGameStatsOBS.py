@@ -51,6 +51,7 @@ class pitcherstats:
         self.p_w_pitches_thrown = 0
         self.p_w_strikeouts = 0
         self.p_w_outs = 0
+        self.p_w_games = 0
 
         self.b_w_at_bats = 0
         self.b_w_hits = 0
@@ -63,6 +64,7 @@ class pitcherstats:
         self.b_w_walks = 0
         self.b_w_HBP = 0
         self.b_w_RBI = 0
+        self.b_w_games = 0
 
         #hud stats
         self.p_h_batters_faced = 0
@@ -76,9 +78,9 @@ class pitcherstats:
         self.p_h_stamina = 0
         self.p_h_strikeouts = 0
         self.p_h_outs = 0
-        self.p_h_pitcher = str()
+        self.p_h_charName = str()
 
-        self.b_h_batter = str()
+        self.b_h_charName = str()
         self.b_h_team_index = 0
         self.b_h_roster_loc = 0
         self.b_h_at_bats = 0
@@ -108,6 +110,7 @@ class pitcherstats:
         self.b_t_k = 0
         self.b_t_bb = 0
         self.b_t_hbp = 0
+        self.b_t_games = 0
 
         self.p_hud_stats_string = str()
         self.p_t_stats_string = str()
@@ -115,10 +118,12 @@ class pitcherstats:
         self.p_t_ERA = 0
         self.p_t_k = 0
         self.p_t_oppAvg = 0
+        self.p_t_games = 0
 
         self.b_combined_text_output = str()
         self.p_combined_text_output = str()
 
+        self.outputStyle = "H"
 
         self.image_width = 60
 
@@ -255,29 +260,36 @@ class pitcherstats:
         if self.debugMode:
             print("parse web stats")
         
+        web_data_pitcher_misc = []
+        web_data_batter_misc = []
+        
         #assign batter and pitcher stat variables
         #home
         self.web_batter_statsFound = False
         self.web_pitcher_statsFound = False
         if self.web_home_statsFound:
             if self.half_inning_cur == 0:
-                if self.p_h_pitcher in self.web_data_home["Stats"]:
-                    web_data_pitcher = self.web_data_home["Stats"][self.p_h_pitcher]["Pitching"]
+                if self.p_h_charName in self.web_data_home["Stats"]:
+                    web_data_pitcher = self.web_data_home["Stats"][self.p_h_charName]["Pitching"]
+                    web_data_pitcher_misc = self.web_data_home["Stats"][self.p_h_charName]["Misc"]
                     self.web_pitcher_statsFound = True
             else:
-                if self.b_h_batter in self.web_data_home["Stats"]:
-                    web_data_batter = self.web_data_home["Stats"][self.b_h_batter]["Batting"]
+                if self.b_h_charName in self.web_data_home["Stats"]:
+                    web_data_batter = self.web_data_home["Stats"][self.b_h_charName]["Batting"]
+                    web_data_batter_misc = self.web_data_home["Stats"][self.b_h_charName]["Misc"]
                     self.web_batter_statsFound = True
 
         #away
         if self.web_away_statsFound:
             if self.half_inning_cur == 0:
-                if self.b_h_batter in self.web_data_away["Stats"]:
-                    web_data_batter = self.web_data_away["Stats"][self.b_h_batter]["Batting"]
+                if self.b_h_charName in self.web_data_away["Stats"]:
+                    web_data_batter = self.web_data_away["Stats"][self.b_h_charName]["Batting"]
+                    web_data_batter_misc = self.web_data_away["Stats"][self.b_h_charName]["Misc"]
                     self.web_batter_statsFound = True
             else:
-                if self.p_h_pitcher in self.web_data_away["Stats"]:
-                    web_data_pitcher = self.web_data_away["Stats"][self.p_h_pitcher]["Pitching"]
+                if self.p_h_charName in self.web_data_away["Stats"]:
+                    web_data_pitcher = self.web_data_away["Stats"][self.p_h_charName]["Pitching"]
+                    web_data_pitcher_misc = self.web_data_away["Stats"][self.p_h_charName]["Misc"]
                     self.web_pitcher_statsFound = True
 
         if self.debugMode:
@@ -296,6 +308,7 @@ class pitcherstats:
             self.b_w_walks = web_data_batter["summary_walks_bb"]
             self.b_w_HBP = web_data_batter["summary_walks_hbp"]
             self.b_w_RBI = web_data_batter["summary_rbi"]
+            self.b_w_games = web_data_batter_misc["game_appearances"]
         else:
             self.b_w_at_bats = 0
             self.b_w_hits = 0
@@ -308,6 +321,7 @@ class pitcherstats:
             self.b_w_walks = 0
             self.b_w_HBP = 0
             self.b_w_RBI = 0
+            self.b_w_games = 0
 
         if self.web_pitcher_statsFound:
             self.p_w_batters_faced = web_data_pitcher["batters_faced"]
@@ -318,6 +332,7 @@ class pitcherstats:
             self.p_w_pitches_thrown = web_data_pitcher["total_pitches"]
             self.p_w_strikeouts = web_data_pitcher["strikeouts_pitched"]
             self.p_w_outs = web_data_pitcher["outs_pitched"]
+            self.p_w_games = web_data_pitcher_misc["game_appearances"]
         else:
             self.p_w_batters_faced = 0
             self.p_w_runs_allowed = 0
@@ -327,6 +342,7 @@ class pitcherstats:
             self.p_w_pitches_thrown = 0
             self.p_w_strikeouts = 0
             self.p_w_outs = 0
+            self.p_w_games = 0
 
     def summary_stats(self):
         if self.debugMode:
@@ -335,7 +351,7 @@ class pitcherstats:
         #update web stat variables
         getstats.parse_web_stats()
 
-        self.b_t_stats_string = "Batter: " + self.b_h_batter
+        self.b_t_stats_string = "Batter: " + self.b_h_charName
         self.b_t_avg = 0 if (self.b_w_at_bats + self.b_h_at_bats) == 0 else (self.b_w_hits + self.b_h_hits)/(self.b_w_at_bats + self.b_h_at_bats)
         self.b_t_hits = self.b_w_hits + self.b_h_hits
         self.b_t_hr = self.b_w_homeruns + self.b_h_homeruns
@@ -343,14 +359,16 @@ class pitcherstats:
         self.b_t_k = self.b_w_strikeouts + self.b_h_strikeouts
         self.b_t_bb = self.b_w_walks + self.b_h_walks
         self.b_t_hbp = self.b_w_HBP + self.b_h_HBP
+        self.b_t_games = self.b_w_games + 1
 
         self.b_t_stats_string += "\nAvg: " + str('{0:.3f}'.format(float(self.b_t_avg))) + " H: " + str(self.b_t_hits) + " HR: " + str(self.b_t_hr) + " RBI: " +  str(self.b_t_rbi) + " SO: " + str(self.b_t_k)
 
-        self.p_t_stats_string = "Pitcher: " + self.p_h_pitcher  
+        self.p_t_stats_string = "Pitcher: " + self.p_h_charName  
         self.p_t_ER = self.p_w_runs_allowed + self.p_h_earned_runs
         self.p_t_ERA = 0 if (self.p_w_outs + self.p_h_outs) == 0 else 9*((self.p_w_runs_allowed + self.p_h_earned_runs)/((self.p_w_outs + self.p_h_outs)/3))
         self.p_t_k = self.p_w_strikeouts + self.p_h_strikeouts
         self.p_t_oppAvg = 0 if (self.p_w_batters_faced + self.p_h_batters_faced) == 0 else (self.p_w_hits + self.p_h_hits)/(self.p_w_batters_faced + self.p_h_batters_faced)
+        self.p_t_games = self.p_w_games + 1
 
         self.p_t_stats_string += "\nERA: " + str('{0:.1f}'.format(float(self.p_t_ERA))) + " K: " + str(self.p_t_k) + " Opp Avg.: " + str('{0:.3f}'.format(float(self.p_t_oppAvg)))
 
@@ -382,22 +400,22 @@ class pitcherstats:
             if "Pitch" in hud_data["Previous Event"].keys():
                 teamInt = hud_data["Previous Event"]["Pitch"]["Pitcher Team Id"]
                 teamStr = "Away" if teamInt == 0 else "Home"
-                self.p_h_pitcher = hud_data["Previous Event"]["Pitch"]["Pitcher Char Id"]
+                self.p_h_charName = hud_data["Previous Event"]["Pitch"]["Pitcher Char Id"]
                 for roster in range(0, 9):
                     team_roster_str = teamStr + " Roster " + str(roster)
-                    if hud_data[team_roster_str]["CharID"] == self.p_h_pitcher:
+                    if hud_data[team_roster_str]["CharID"] == self.p_h_charName:
                         pitcher_id = roster
             else:
                 return self.current_event_num
         else:
             teamStr = "Home"
-            self.p_h_pitcher = "First Event"
+            self.p_h_charName = "First Event"
             pitcher_id = 0
 
         p_team_roster_str = teamStr + " Roster " + str(pitcher_id)
 
         # Vars to hold data for characters and teams(player)
-        self.p_h_pitcher = hud_data[p_team_roster_str]["CharID"]
+        self.p_h_charName = hud_data[p_team_roster_str]["CharID"]
         self.p_h_batters_faced = hud_data[p_team_roster_str]["Defensive Stats"]["Batters Faced"]
         self.p_h_runs_allowed = hud_data[p_team_roster_str]["Defensive Stats"]["Runs Allowed"]
         self.p_h_earned_runs = hud_data[p_team_roster_str]["Defensive Stats"]["Earned Runs"]
@@ -418,7 +436,7 @@ class pitcherstats:
         self.b_h_roster_loc = hud_data["Batter Roster Loc"]
 
         b_team_roster_str = b_teamStr + " Roster " + str(self.b_h_roster_loc)
-        self.b_h_batter = hud_data[b_team_roster_str]["CharID"]
+        self.b_h_charName = hud_data[b_team_roster_str]["CharID"]
         self.b_h_at_bats = hud_data[b_team_roster_str]["Offensive Stats"]["At Bats"]
         self.b_h_hits = hud_data[b_team_roster_str]["Offensive Stats"]["Hits"]
         self.b_h_singles = hud_data[b_team_roster_str]["Offensive Stats"]["Singles"]
@@ -456,7 +474,7 @@ class pitcherstats:
             self.half_inning_old = str(hud_data["Half Inning"])
 
     def stat_output_create(self):
-        #to do: edit to make the strings within this function, and let the other functions just grab the totals.
+        #vertical version of the table
         b_seasonAvg_stat_string = self.b_t_stats_string 
         b_game_stat_string = str()
         for line in self.b_hud_stats_string[1:]:
@@ -467,9 +485,74 @@ class pitcherstats:
         for line in self.p_hud_stats_string[1:]:
             p_game_stat_string += line + "\n"
 
-        self.b_combined_text_output = b_seasonAvg_stat_string + "\n" + b_game_stat_string
-        self.p_combined_text_output = p_seasonAvg_stat_string + "\n" + p_game_stat_string
+        b_VertString = b_seasonAvg_stat_string + "\n" + b_game_stat_string
+        p_VertString = p_seasonAvg_stat_string + "\n" + p_game_stat_string
+        
+        #horizontal version of the table
+        b_horizString = str()
+        p_horizString = str()
 
+        #*averages
+        b_horizString_season_statNames = "G".ljust(4," ") + "BA".ljust(6," ") + "HR".ljust(4," ") +  "RBI".ljust(4," ") + "K".ljust(4," ") #21 chars
+        b_horizString_season_stats = str(self.b_t_games).ljust(4," ") + str('{0:.3f}'.format(float(self.b_t_avg))).ljust(6," ") + \
+            str(self.b_t_hr).ljust(4," ") + str(self.b_t_rbi).ljust(4," ") + str(self.b_t_k)
+        
+        p_horizString_season_statNames = "G".ljust(4," ") + "ERA".ljust(5," ") + "OpAvg".ljust(6," ") +  "K".ljust(4," ") #19 chars
+        p_horizString_season_stats = str(self.p_t_games).ljust(4," ") + str('{0:.1f}'.format(float(self.p_t_ERA))).ljust(5," ") + \
+            str('{0:.3f}'.format(float(self.p_t_oppAvg))).ljust(6," ") + str(self.p_t_k)
+        
+        #*current game
+        #**define macro for adding hud stats
+        maxLineLen = 18 
+        def addHubStatToString(statName, statValue, mainString, lineLen = maxLineLen):
+            #check if string length is too long. If so, add a new line. Else, add a space.
+            returnString = str()
+
+            newLineCount = mainString.count("\n")
+            if statValue > 0:
+                if len(mainString) > lineLen * (newLineCount+1):
+                    returnString += "\n"
+                else:
+                    returnString += " "
+
+            #add stat name, and if multiple, add quantity.
+                returnString += statName if statValue == 1 else statName + "(" + str(statValue) +")"
+
+            return returnString
+       
+       #**batter
+        b_horizString_game = str()
+        b_horizString_game += "Game: "
+        b_horizString_game += str(self.b_h_hits) + "/" + str(self.b_h_at_bats)
+        b_horizString_game += addHubStatToString("HR", self.b_h_homeruns, b_horizString_game)
+        b_horizString_game += addHubStatToString("3B", self.b_h_triples, b_horizString_game)
+        b_horizString_game += addHubStatToString("2B", self.b_h_doubles, b_horizString_game)
+        b_horizString_game += addHubStatToString("1B", self.b_h_singles, b_horizString_game)
+        b_horizString_game += addHubStatToString("RBI", self.b_h_RBI, b_horizString_game)
+        b_horizString_game += addHubStatToString("K", self.b_h_strikeouts, b_horizString_game)
+        b_horizString_game += addHubStatToString("W", self.b_h_walks+self.b_h_HBP, b_horizString_game)
+
+        #**pitcher
+        p_horizString_game = str()
+        p_horizString_game += "Game: "
+        p_horizString_game += "Outs=" + str(self.p_h_outs) + " K=" + str(self.p_h_strikeouts) + "\n" + \
+            "Pitches=" + str(self.p_h_pitches_thrown) + " Stamina=" + str(self.p_h_stamina)
+
+        #*final horizontal strings  
+        b_horizString = self.b_h_charName + "\n" + b_horizString_season_statNames + "\n" + b_horizString_season_stats + "\n" + b_horizString_game
+        print(b_horizString)
+
+        p_horizString = self.p_h_charName + "\n" + p_horizString_season_statNames + "\n" + p_horizString_season_stats + "\n" + p_horizString_game
+        print(p_horizString)
+
+        #string to output
+        self.outputStyle
+        if self.outputStyle == "H":
+            self.b_combined_text_output = b_horizString
+            self.p_combined_text_output = p_horizString
+        else:
+            self.b_combined_text_output = b_VertString
+            self.p_combined_text_output = p_VertString
 
     def stat_output_update_display(self):
         b_source = S.obs_get_source_by_name("batter_combined_stats_text")
@@ -509,32 +592,32 @@ class pitcherstats:
 
     def custom_stats(self):
         p_custom_stats_list = []
-        if self.p_h_pitcher != "First Event":
-            p_custom_stats_list.append("Pitcher: " + str(self.p_h_pitcher))
+        if self.p_h_charName != "First Event":
+            p_custom_stats_list.append("Pitcher: " + str(self.p_h_charName))
         p_stats_string = ""
         p_stats_list = S.obs_data_get_string(globalsettings, "_pitching_stats").split(";")
         for item in p_stats_list:
-            if item == "Batters Faced" or item == "1" and self.p_h_pitcher != "First Event":
+            if item == "Batters Faced" or item == "1" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Batters Faced: " + str(self.p_h_batters_faced))
-            if item == "Runs Allowed" or item == "2" and self.p_h_pitcher != "First Event":
+            if item == "Runs Allowed" or item == "2" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Runs Allowed: " + str(self.p_h_runs_allowed))
-            if item == "Earned Runs" or item == "3" and self.p_h_pitcher != "First Event":
+            if item == "Earned Runs" or item == "3" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Earned Runs: " + str(self.p_h_runs_allowed))
-            if item == "Walks" or item == "4" and self.p_h_pitcher != "First Event":
+            if item == "Walks" or item == "4" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Walks: " + str(self.p_h_walks))
-            if item == "HBP" or item == "5" and self.p_h_pitcher != "First Event":
+            if item == "HBP" or item == "5" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("HBP: " + str(self.p_h_hbp))
-            if item == "Hits Allowed" or item == "6" and self.p_h_pitcher != "First Event":
+            if item == "Hits Allowed" or item == "6" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Hits Allowed: " + str(self.p_h_hits))
-            if item == "HRs Allowed" or item == "7" and self.p_h_pitcher != "First Event":
+            if item == "HRs Allowed" or item == "7" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("HRs Allowed: " + str(self.p_h_hrs))
-            if item == "Pitch Count" or item == "8" and self.p_h_pitcher != "First Event":
+            if item == "Pitch Count" or item == "8" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Pitch Count: " + str(self.p_h_pitches_thrown))
-            if item == "Stamina" or item == "9" and self.p_h_pitcher != "First Event":
+            if item == "Stamina" or item == "9" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Stamina: " + str(self.p_h_stamina))
-            if item == "Strikeouts" or item == "10" and self.p_h_pitcher != "First Event":
+            if item == "Strikeouts" or item == "10" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Strikeouts: " + str(self.p_h_strikeouts))
-            if item == "Outs Pitched" or item == "11" and self.p_h_pitcher != "First Event":
+            if item == "Outs Pitched" or item == "11" and self.p_h_charName != "First Event":
                 p_custom_stats_list.append("Outs Pitched: " + str(self.p_h_outs))
 
         for line in p_custom_stats_list:
@@ -551,7 +634,7 @@ class pitcherstats:
         S.obs_source_release(source)
 
         b_custom_stats_list = []
-        b_custom_stats_list.append("Batter: " + str(self.b_h_batter))
+        b_custom_stats_list.append("Batter: " + str(self.b_h_charName))
         b_stats_string = ""
         b_custom_stats_list.append("Season Stats:")
         b_custom_stats_list.append("Average: " + str('{0:.3f}'.format(float(self.b_t_avg))))
@@ -714,6 +797,8 @@ def toggle_stat_display_pressed(props, prop):
     #batting text box
     if Batter_Combined_Stats_Source is None: #source doesn't exist, so create
         settings = S.obs_data_create()
+        #TO DO: get the font change to work
+        #S.obs_data_set_string(settings, "face", "Cascadia Mono SemiLight")
         if getstats.platform == 'MacOS':
             Batter_Combined_Stats_Source = S.obs_source_create("text_ft2_source", 'batter_combined_stats_text', settings, None)
         else:
@@ -736,6 +821,13 @@ def toggle_stat_display_pressed(props, prop):
         S.obs_data_release(settings)    
     else: #source exists, so delete
         S.obs_sceneitem_remove(Pitcher_Combined_Stats_Source)
+
+def toggle_stat_style_pressed(props, prop):
+    if getstats.outputStyle == "H":
+        getstats.outputStyle = "V"
+    else:
+        getstats.outputStyle = "H"
+
     
 def flip_teams(props, prop):
     getstats.flip_teams()
@@ -791,6 +883,7 @@ def script_properties():
     S.obs_properties_add_button(props, "_addSummaryStatsButton", "Add Summary Stats", add_summary_pressed)
 
     S.obs_properties_add_button(props, "_toggleStatOutputButton", "Toggle Stat Display", toggle_stat_display_pressed)
+    S.obs_properties_add_button(props, "_toggleStatOutputStyle", "Toggle Stat Display Style", toggle_stat_style_pressed)
 
     OS_list = S.obs_properties_add_list(props, "_OS_list", "OS:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(OS_list, "Custom", "custom")
