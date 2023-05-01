@@ -178,63 +178,6 @@ class pitcherstats:
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_pitcher_stats_text"), self.web_pitching_stats_loc)
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_batter_stats_text"), self.web_batting_stats_loc)
 
-    def add_pitching_stats(self):
-        current_scene = S.obs_frontend_get_current_scene()
-        self.scene = S.obs_scene_from_source(current_scene)
-        S.obs_source_release(current_scene)
-
-        settings = S.obs_data_create()
-        if self.platform == 'MacOS':
-            Pitcher_Stats_Text = S.obs_source_create("text_ft2_source", 'pitcher_stats_text', settings, None)
-        else:
-            Pitcher_Stats_Text = S.obs_source_create("text_gdiplus", 'pitcher_stats_text', settings, None)
-        S.obs_scene_add(self.scene, Pitcher_Stats_Text)
-        S.obs_source_release(Pitcher_Stats_Text)
-        S.obs_data_release(settings)
-
-        settings = S.obs_data_create()
-        if self.platform == 'MacOS':
-            Batter_Stats_Text = S.obs_source_create("text_ft2_source", 'batter_stats_text', settings, None)
-        else:
-            Batter_Stats_Text = S.obs_source_create("text_gdiplus", 'batter_stats_text', settings, None)
-        S.obs_scene_add(self.scene, Batter_Stats_Text)
-        S.obs_source_release(Batter_Stats_Text)
-        S.obs_data_release(settings)
-
-    def add_summary_stats(self):
-        if self.debugMode:
-            print("adding summmary stats")
-
-        current_scene = S.obs_frontend_get_current_scene()
-        self.scene = S.obs_scene_from_source(current_scene)
-        S.obs_source_release(current_scene)
-
-        #check if the sources already exist.
-        old_bSummary_source = S.obs_scene_find_source(self.scene,'batter_summary_stats_text')
-        old_pSummary_source = S.obs_scene_find_source(self.scene,'pitcher_summary_stats_text')
-
-        #Add batting text box
-        if old_bSummary_source is None: #only create if it doesn't already exist
-            settings = S.obs_data_create()
-            if self.platform == 'MacOS':
-                Batter_Summary_Stats_Text = S.obs_source_create("text_ft2_source", 'batter_summary_stats_text', settings, None)
-            else:
-                Batter_Summary_Stats_Text = S.obs_source_create("text_gdiplus", 'batter_summary_stats_text', settings, None)
-            S.obs_scene_add(self.scene, Batter_Summary_Stats_Text)
-            S.obs_source_release(Batter_Summary_Stats_Text)
-            S.obs_data_release(settings)
-
-        #Add pitching text box
-        if old_pSummary_source is None: #only create if it doesn't already exist
-            settings = S.obs_data_create()
-            if self.platform == 'MacOS':
-                Pitcher_Summary_Stats_Text = S.obs_source_create("text_ft2_source", 'pitcher_summary_stats_text', settings, None)
-            else:
-                Pitcher_Summary_Stats_Text = S.obs_source_create("text_gdiplus", 'pitcher_summary_stats_text', settings, None)
-            S.obs_scene_add(self.scene, Pitcher_Summary_Stats_Text)
-            S.obs_source_release(Pitcher_Summary_Stats_Text)
-            S.obs_data_release(settings)    
-    
     def get_active_modes(self):
         if self.debugMode:
             print("Get modes")
@@ -372,7 +315,7 @@ class pitcherstats:
 
         self.p_t_stats_string += "\nERA: " + str('{0:.1f}'.format(float(self.p_t_ERA))) + " K: " + str(self.p_t_k) + " Opp Avg.: " + str('{0:.3f}'.format(float(self.p_t_oppAvg)))
 
-    def dir_scan(self):
+    def parse_hud_file(self):
         if self.debugMode:
             print("hud stats")
 
@@ -469,9 +412,6 @@ class pitcherstats:
             self.b_h_star_hits,
         ]
 
-        if str(self.half_inning_old) != str(hud_data["Half Inning"]):
-            self.flip_teams()
-            self.half_inning_old = str(hud_data["Half Inning"])
 
     def stat_output_create(self):
 
@@ -594,15 +534,12 @@ class pitcherstats:
 
         #*final horizontal strings  
         b_horizString = self.b_h_charName + "\n" + b_horizString_season_statNames + "\n" + b_horizString_season_stats + "\n" + b_horizString_game
-        print(b_horizString)
 
         p_horizString = self.p_h_charName + "\n" + p_horizString_season_statNames + "\n" + p_horizString_season_stats + "\n" + p_horizString_game
-        print(p_horizString)
 
         #string to output
         self.outputStyle
         if self.outputStyle == "H":
-            print(self.outputStyle)
             self.b_combined_text_output = b_horizString
             self.p_combined_text_output = p_horizString
         else:
@@ -625,6 +562,11 @@ class pitcherstats:
             S.obs_source_update(p_source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(p_source)
+
+        if self.half_inning_old != self.half_inning_cur:
+            self.flip_teams()
+            self.half_inning_old = self.half_inning_cur
+
 
     def custom_stats(self):
         p_custom_stats_list = []
@@ -681,7 +623,7 @@ def script_load(settings):
     getstats = pitcherstats()
 
     getstats.new_event = 1
-    getstats.dir_scan()
+    getstats.parse_hud_file()
 
     getstats.summary_stats()
     
@@ -690,11 +632,10 @@ def script_load(settings):
 
 def check_for_updates():
    if pause_bool == False:
-        getstats.dir_scan()
+        getstats.parse_hud_file()
         getstats.summary_stats()
         getstats.custom_stats()
 
-        #new - eventually delete the other displays
         getstats.stat_output_create()
         getstats.stat_output_update_display()
 
@@ -742,27 +683,6 @@ def script_description():
            "13. Steals;   " \
            "14. Star Hits;   \n" \
            "Enter the numbers of stats you wish displayed, seperated by a ;" \
-
-
-def add_pressed(props, prop):
-    getstats.add_pitching_stats()
-    getstats.dir_scan()
-    getstats.custom_stats()
-
-def remove_pressed(props, prop):
-    pitcher_stats = S.obs_get_source_by_name("pitcher_stats_text")
-    S.obs_source_remove(pitcher_stats)
-    S.obs_source_release(pitcher_stats)
-
-    batter_stats = S.obs_get_source_by_name("batter_stats_text")
-    S.obs_source_remove(batter_stats)
-    S.obs_source_release(batter_stats)
-
-def add_summary_pressed(props, prop):
-    getstats.add_summary_stats()
-    getstats.dir_scan()
-    getstats.parse_web_stats()
-    getstats.summary_stats()
 
 def toggle_stat_display_pressed(props, prop):
     #code source to be added or removed when this button is pressed
@@ -856,17 +776,17 @@ def get_web_stats(props, prop):
     
 def script_properties():
     props = S.obs_properties_create()
+
     S.obs_properties_add_bool(props, "_pause", "Pause")
+
+    S.obs_properties_add_button(props, "_toggleStatOutputButton", "Toggle Stat Display", toggle_stat_display_pressed)
+    S.obs_properties_add_button(props, "_toggleStatOutputStyle", "Toggle Display Style", toggle_stat_style_pressed)
+
+    S.obs_properties_add_button(props, "_flipteams", "Flip Team Locations", flip_teams)
+
     S.obs_properties_add_text(props, "_pitching_stats", "Pitching Stats", S.OBS_TEXT_DEFAULT)
     S.obs_properties_add_text(props, "_batting_stats", "Batting Stats", S.OBS_TEXT_DEFAULT)
 
-    S.obs_properties_add_button(props, "_add_button", "Add Game Stats", add_pressed)
-    S.obs_properties_add_button(props, "_removebutton", "Remove Game Stats", remove_pressed)
-
-    S.obs_properties_add_button(props, "_addSummaryStatsButton", "Add Summary Stats", add_summary_pressed)
-
-    S.obs_properties_add_button(props, "_toggleStatOutputButton", "Toggle Stat Display", toggle_stat_display_pressed)
-    S.obs_properties_add_button(props, "_toggleStatOutputStyle", "Toggle Stat Display Style", toggle_stat_style_pressed)
 
     OS_list = S.obs_properties_add_list(props, "_OS_list", "OS:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(OS_list, "Custom", "custom")
@@ -874,20 +794,16 @@ def script_properties():
     S.obs_property_list_add_string(OS_list, "MacOS", "macOS")
     S.obs_properties_add_text(props, "_path", "Path to HUD json:", S.OBS_TEXT_DEFAULT)
 
-    S.obs_properties_add_button(props, "_flipteams", "Flip Team Locations", flip_teams)
-
     #add dropdown for modes to filter web stats
     web_mode_list = S.obs_properties_add_list(props, "_web_mode_list", "Mode for Web Stats:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     
     #if the list of modes was already fetched, don't do it again.
-    if getstats.got_modes == False:
-        getstats.get_active_modes()
-        getstats.got_modes = True
+    #if getstats.got_modes == False: use when we want to automate the list from the web
+        #getstats.get_active_modes() 
+        #getstats.got_modes = True
 
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
-
-    S.obs_property_list_add_string(web_mode_list, 'StarsOffSeason5', 'StarsOffSeason5')
     S.obs_property_list_add_string(web_mode_list, 'StarsOffSeason5', 'StarsOffSeason5')
     S.obs_property_list_add_string(web_mode_list, 'StarsOnSeason5', 'StarsOnSeason5')
     S.obs_property_list_add_string(web_mode_list, 'BigBallaSeason5', 'BigBallaSeason5')
