@@ -480,7 +480,7 @@ class pitcherstats:
         #to do: edit to make the strings within this function, and let the other functions just grab the totals.
 
         b_custom_stats_list = []
-        b_custom_stats_list.append("Batter: " + str(self.b_h_batter))
+        b_custom_stats_list.append("Batter: " + str(self.b_h_charName))
         self.b_stats_string = ""
         b_custom_stats_list.append("Season Stats:")
         b_custom_stats_list.append("AVG: " + str('{0:.3f}'.format(float(self.b_t_avg))))
@@ -534,7 +534,7 @@ class pitcherstats:
 
 
         p_seasonAvg_stat_string = self.p_t_stats_string 
-        p_game_stat_string = "Pitcher: " + str(self.p_h_pitcher) + "\n" + "Season Stats:\n" + str('ERA: {0:.1f}\n'.format(float(self.p_t_ERA))) + "Opp AVG: " + str('{0:.3f} \n'.format(float(self.p_t_oppAvg))) + 'Game Stats:\n'
+        p_game_stat_string = "Pitcher: " + str(self.p_h_charName) + "\n" + "Season Stats:\n" + str('ERA: {0:.1f}\n'.format(float(self.p_t_ERA))) + "Opp AVG: " + str('{0:.3f} \n'.format(float(self.p_t_oppAvg))) + 'Game Stats:\n'
         for line in self.p_hud_stats_string[1:]:
             p_game_stat_string += line + "\n"
 
@@ -602,6 +602,7 @@ class pitcherstats:
         #string to output
         self.outputStyle
         if self.outputStyle == "H":
+            print(self.outputStyle)
             self.b_combined_text_output = b_horizString
             self.p_combined_text_output = p_horizString
         else:
@@ -612,7 +613,7 @@ class pitcherstats:
         b_source = S.obs_get_source_by_name("batter_combined_stats_text")
         if b_source is not None:
             settings = S.obs_data_create()
-            S.obs_data_set_string(settings, "text", self.b_stats_string)
+            S.obs_data_set_string(settings, "text", self.b_combined_text_output)
             S.obs_source_update(b_source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(b_source)
@@ -624,25 +625,6 @@ class pitcherstats:
             S.obs_source_update(p_source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(p_source)
-
-    def summary_stats_display(self):
-        source = S.obs_get_source_by_name("batter_summary_stats_text")
-        settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", self.b_t_stats_string)
-        S.obs_source_update(source, settings)
-        S.obs_data_release(settings)
-        S.obs_source_release(source)
-        
-        source = S.obs_get_source_by_name("pitcher_summary_stats_text")
-        settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", self.p_t_stats_string)
-        S.obs_source_update(source, settings)
-        S.obs_data_release(settings)
-        S.obs_source_release(source)
-
-        if self.debugMode:
-            print(self.b_t_stats_string)
-            print(self.p_t_stats_string)
 
     def custom_stats(self):
         p_custom_stats_list = []
@@ -711,7 +693,6 @@ def check_for_updates():
         getstats.dir_scan()
         getstats.summary_stats()
         getstats.custom_stats()
-        getstats.summary_stats_display()
 
         #new - eventually delete the other displays
         getstats.stat_output_create()
@@ -782,7 +763,6 @@ def add_summary_pressed(props, prop):
     getstats.dir_scan()
     getstats.parse_web_stats()
     getstats.summary_stats()
-    getstats.summary_stats_display()
 
 def toggle_stat_display_pressed(props, prop):
     #code source to be added or removed when this button is pressed
