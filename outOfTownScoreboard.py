@@ -143,6 +143,8 @@ class scoreboard:
         if sb.nOngoingGames_previous > sb.nOngoingGames: #need to update to ignore stale games
             sb.gameJustEndedInd = True
             sb.gameJustEndedTime = time.time()
+            self.get_recent_games(sb.nRecentGames)
+            self.displayedGames[0] = displayStruct("Recent", 0, time.time())
 
         #to do: check if live games are stale and mark them somehow
         #to do: exclude game from current HUD file.
@@ -151,7 +153,6 @@ class scoreboard:
         sb.time_gotRecentGames = time.time()
 
         url_recentGames = "https://api.projectrio.app/games/?&limit_games=" + str(nGames)
-        print(url_recentGames)
 
         testInd = False
 
@@ -161,11 +162,6 @@ class scoreboard:
             recentGames_json = json.loads(urlopen(url_recentGames).read())
             print("recent games API call", time.asctime(time.localtime(math.floor(time.time()))))
         self.recentGames = recentGames_json["games"]
-        
-        print(self.recentGames)
-        #self.recentGames_inTimeRange
-        print(len(self.recentGames))
-
 
     def recent_game_formatting(self, gameIndex):
         gameInfo = self.recentGames[gameIndex]
@@ -190,15 +186,17 @@ class scoreboard:
 
         self.recent_stadium = stadMapping[gameInfo["Stadium"]]
 
+        gameShownString = "(Showing " + str(gameIndex + 1) + "/" + str(self.nRecentGames) + ")"
+
         recentString = self.recent_gameMode + fString.rjust(30 - len(self.recent_gameMode)," ") + "\n" + \
             self.recent_a_player.ljust(nameLength," ") + " " + str(self.recent_a_score).ljust(3," ") + self.recent_a_captain.rjust(30 - nameLength - 4) + "\n" + \
             self.recent_h_player.ljust(nameLength," ") + " " + str(self.recent_h_score).ljust(3," ") + self.recent_h_captain.rjust(30 - nameLength - 4) + "\n" + \
-            self.recent_stadium
+            self.recent_stadium + gameShownString.rjust(30 - len(self.recent_stadium))
         test = "recent game"
         return recentString
     
     def live_game_fomatting(self, gameIndex):
-        print("game index",gameIndex)
+        print("live game formatted",gameIndex)
         gameInfo = self.ongoingGames_inTimeRange[gameIndex]
 
         self.live_h_player = gameInfo["home_player"]
@@ -257,17 +255,18 @@ class scoreboard:
         return liveString
 
     def decide_games_to_display(self):
-        print(self.displayedGames[0].displayStartTime, self.displayedGames[0].gameIndex, self.displayedGames[0].gameType)
-        print(self.displayedGames[1].displayStartTime, self.displayedGames[1].gameIndex, self.displayedGames[1].gameType)
         
         print("Live: ", live_displayInd, " recent: ", recent_displayInd)
         if live_displayInd and recent_displayInd:#both displays 
             if self.nOngoingGames == 0: #if no live games, both show recent
-                for game in self.displayedGames:
-                    if game.displayStartTime < time.time() - self.displayCycleSec: #if past time, then update game
+                if self.displayedGames[0].displayStartTime < time.time() - self.displayCycleSec: #if time to change
                         self.recentGameDisplayedIndex = (self.recentGameDisplayedIndex + 1) % self.nRecentGames
-                        game = displayStruct("Recent", self.recentGameDisplayedIndex, time.time())
+                        self.displayedGames[0] = displayStruct("Recent", self.recentGameDisplayedIndex, time.time())
+                if self.displayedGames[1].displayStartTime < time.time() - self.displayCycleSec: #if time to change
+                        self.recentGameDisplayedIndex = (self.recentGameDisplayedIndex + 1) % self.nRecentGames
+                        self.displayedGames[1] = displayStruct("Recent", self.recentGameDisplayedIndex, time.time())
             else: #if there's at least 1 live game
+                print("Decision: show some live games")
                 #live display
                 if self.displayedGames[0].displayStartTime < time.time() - self.displayCycleSec: #if time to change
                     if self.nOngoingGames > 1: #if more than 1 live game, then just rotate between them
@@ -303,6 +302,9 @@ class scoreboard:
         else:
             self.displayedGames[0] = displayStruct("None", 0, 0)
             self.displayedGames[1] = displayStruct("None", 0, 0)
+    
+        print(self.displayedGames[0].displayStartTime, self.displayedGames[0].gameIndex, self.displayedGames[0].gameType)
+        print(self.displayedGames[1].displayStartTime, self.displayedGames[1].gameIndex, self.displayedGames[1].gameType)
 
 
 
@@ -311,11 +313,12 @@ class scoreboard:
         liveDisplay_source = S.obs_get_source_by_name("liveDisplay")
         if liveDisplay_source is not None:
             settings = S.obs_data_create()
-            print("game printed", self.displayedGames[0].gameType, self.displayedGames[0].gameIndex)
             if self.displayedGames[0].gameType == "None":
                 S.obs_data_set_string(settings, "text", "")
-            else:
+            elif self.displayedGames[0].gameType == "Live":
                 S.obs_data_set_string(settings, "text", self.live_game_fomatting(self.displayedGames[0].gameIndex))
+            else:
+                S.obs_data_set_string(settings, "text", self.recent_game_formatting(self.displayedGames[0].gameIndex))
             S.obs_source_update(liveDisplay_source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(liveDisplay_source)
@@ -337,7 +340,6 @@ def update_display_pressed(props, prop):
     global recent_displayInd
     live_displayInd = S.obs_data_get_bool(globalsettings, "_live_game_display")
     recent_displayInd = S.obs_data_get_bool(globalsettings, "_recent_game_display")
-    print(live_displayInd, recent_displayInd)
 
     current_scene = S.obs_frontend_get_current_scene()
     sb.scene = S.obs_scene_from_source(current_scene)
@@ -388,6 +390,9 @@ def script_load(settings):
     global ds
     ds = displayStruct(str(), 0, 0)
 
+    global test_bool
+    test_bool = False
+
 def check_for_updates():
     if pause_bool == False:
         if sb.gameJustEndedInd and sb.gameJustEndedTime < time.time() - 2*60: #treat a just ended live game as still live for 2 minutes
@@ -419,20 +424,25 @@ def script_update(settings):
     global pause_bool
     pause_bool = S.obs_data_get_bool(settings, "_pause")
 
-    global test_bool
-    test_bool = S.obs_data_get_bool(settings, "_test")
-
 
 def script_description():
-    return "test"
+    return  "By Nuche17\n" \
+            "**USE A CASCADIA MONO FONT FOR THE DISPLAYS**\n" \
+            "Adds scenes that show recent and live games in the database.\n" \
+            "Each scene cycles through several games every 10 seconds.\n" \
+            "If the live scene is the only one selected, it will prioritize live games, but if there is only 1 or none, it will also show recent games.\n" \
+            "The recent games scene will only show recent games (currently the last 10).\n" \
+            "If both scenes are selected, the Live display will exclusively show live games, as long as there's at least one happening.\n" \
+            "When changing settings, press the Update Button to process the changes.\n" \
+            "The code will look for new live games every 5 minutes. If there are any live games, it will refresh them every 20 seconds.\n" \
+            "Recent games will update every 30 minutes, or when a live game ends."
 
 def script_properties():
     props = S.obs_properties_create()
 
-    S.obs_properties_add_bool(props, "_pause", "Pause")
-    S.obs_properties_add_bool(props, "_test", "Test")
+    S.obs_properties_add_bool(props, "_pause", "Pause")\
     
-    S.obs_properties_add_button(props, "_updateDisplayButton", "Update Display", update_display_pressed)
+    S.obs_properties_add_button(props, "_updateDisplayButton", "Update Displays", update_display_pressed)
 
     S.obs_properties_add_bool(props, "_live_game_display", "Show Live Games Display")
     S.obs_properties_add_bool(props, "_recent_game_display", "Show Recent Games Display")
