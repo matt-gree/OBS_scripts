@@ -63,9 +63,9 @@ charMapping = {
 }
 
 modeMapping = {
-    10: "Stars On, Season 5",
-    11: "Stars Off, Season 5",
-    12: "Big Balla, Season 5"
+    10: "Stars On, S5",
+    11: "Stars Off, S5",
+    12: "Big Balla, S5"
 }
 
 stadMapping = {
@@ -84,63 +84,62 @@ class displayStruct:
 
 class scoreboard:
     def __init__(self):
-        self.ongoingGames_all = {}
-        self.ongoingGames_inTimeRange = []
-        self.live_text = "test"
+        self.liveGames_all = {}
+        self.liveGames_inTimeRange = []
 
         self.time_gotLiveGames = 0
         self.time_gotRecentGames = 0
 
-        self.live_gameInd = False
+        self.live_gameInd = True #if there is a live game occuring. Initialized to true so the script calls the API at loading.
 
-        self.nOngoingGames_previous = 0
-        self.nOngoingGames = 0
+        self.nliveGames_previous = 0
+        self.nliveGames = 0
 
         self.gameJustEndedInd = False
         self.gameJustEndedTime = 0
 
-        self.nRecentGames = 10
+        self.nRecentGames = 10 #how many recent games are displayed
+        
+        self.displayCycleSec = 10 #how long until the displays cycle to the next game
+
+        self.liveGameTimeRange = 60*60*1 #only look for games in the live game endpoint in the last hour.
 
         self.displayedGames = [displayStruct("None", 0, 0),
                                displayStruct("None", 0, 0)]
-        
-        self.displayCycleSec = 10
 
         self.recentGameDisplayedIndex = 0
         self.liveGameDisplayedIndex = 0
-        
 
-        
-
+    #calls the live game endpoint to check for games.
     def get_live_games(self, timeRange):
         sb.time_gotLiveGames = time.time()
 
-        url_ongoingGames = 'https://api.projectrio.app//populate_db/ongoing_game/'
+        url_liveGames = 'https://api.projectrio.app//populate_db/ongoing_game/'
         testInd = False
 
         if test_bool:
-            ongoingGames_json = json.load(open('C:/Users/nlann/Documents/Project Rio/ongoingGamesExample.json'))
+            liveGames_json = json.load(open('C:/Users/nlann/Documents/Project Rio/ongoingGamesExample.json'))
         else:
-            ongoingGames_json = json.loads(urlopen(url_ongoingGames).read())
-            print("ongoing games API call", time.asctime(time.localtime(math.floor(time.time()))))
+            liveGames_json = json.loads(urlopen(url_liveGames).read())
+            print("live games API call", time.asctime(time.localtime(math.floor(time.time()))))
             
-        self.ongoingGames_all = ongoingGames_json["ongoing_games"]
+        self.liveGames_all = liveGames_json["ongoing_games"]
 
-        self.ongoingGames_previous = self.ongoingGames_inTimeRange
-        self.ongoingGames_inTimeRange = []
-        for game in self.ongoingGames_all:
+        self.liveGames_previous = self.liveGames_inTimeRange
+        self.liveGames_inTimeRange = []
+        for game in self.liveGames_all:
             if int(game['start_time']) > int(timeRange):
-                self.ongoingGames_inTimeRange.append(game)
+                self.liveGames_inTimeRange.append(game)
 
-        sb.nOngoingGames_previous = sb.nOngoingGames
-        sb.nOngoingGames = len(self.ongoingGames_inTimeRange)
+        sb.nliveGames_previous = sb.nliveGames
+        sb.nliveGames = len(self.liveGames_inTimeRange)
 
-        if sb.nOngoingGames > 0:
+        if sb.nliveGames > 0:
             self.live_gameInd = True
         else:
             self.live_gameInd = False
 
-        if sb.nOngoingGames_previous > sb.nOngoingGames: #need to update to ignore stale games
+        if sb.nliveGames_previous > sb.nliveGames: #need to update to ignore stale games
             sb.gameJustEndedInd = True
             sb.gameJustEndedTime = time.time()
             self.get_recent_games(sb.nRecentGames)
@@ -149,6 +148,7 @@ class scoreboard:
         #to do: check if live games are stale and mark them somehow
         #to do: exclude game from current HUD file.
     
+    #retrieves the last x completed games
     def get_recent_games(self, nGames):
         sb.time_gotRecentGames = time.time()
 
@@ -163,6 +163,7 @@ class scoreboard:
             print("recent games API call", time.asctime(time.localtime(math.floor(time.time()))))
         self.recentGames = recentGames_json["games"]
 
+    #formats
     def recent_game_formatting(self, gameIndex):
         gameInfo = self.recentGames[gameIndex]
 
@@ -188,16 +189,32 @@ class scoreboard:
 
         gameShownString = "(Showing " + str(gameIndex + 1) + "/" + str(self.nRecentGames) + ")"
 
+        timeSinceGame_s = time.time() - gameInfo["date_time_end"]
+        timeSinceGame_m = math.floor(timeSinceGame_s/60)
+        timeSinceGame_h = math.floor(timeSinceGame_m/60)
+
+        if timeSinceGame_h <= 0:
+            timeSinceGame = str(timeSinceGame_m) + " Mins Ago"
+        elif timeSinceGame_h == 1:
+            timeSinceGame = str(timeSinceGame_h) + " Hr Ago"
+        else: 
+            timeSinceGame = str(timeSinceGame_h) + " Hrs Ago"
+
+        #option 1
         recentString = self.recent_gameMode + fString.rjust(30 - len(self.recent_gameMode)," ") + "\n" + \
             self.recent_a_player.ljust(nameLength," ") + " " + str(self.recent_a_score).ljust(3," ") + self.recent_a_captain.rjust(30 - nameLength - 4) + "\n" + \
             self.recent_h_player.ljust(nameLength," ") + " " + str(self.recent_h_score).ljust(3," ") + self.recent_h_captain.rjust(30 - nameLength - 4) + "\n" + \
-            self.recent_stadium + gameShownString.rjust(30 - len(self.recent_stadium))
-        test = "recent game"
+            self.recent_stadium + timeSinceGame.rjust(30 - len(self.recent_stadium))
+
+        recentString = fString + timeSinceGame.rjust(30 - len(fString)) + "\n" + \
+            self.recent_a_player.ljust(nameLength," ") + " " + str(self.recent_a_score).ljust(3," ") + self.recent_a_captain.rjust(30 - nameLength - 4) + "\n" + \
+            self.recent_h_player.ljust(nameLength," ") + " " + str(self.recent_h_score).ljust(3," ") + self.recent_h_captain.rjust(30 - nameLength - 4) + "\n" + \
+            self.recent_stadium +  self.recent_gameMode .rjust(30 - len(self.recent_stadium))
+  
         return recentString
     
     def live_game_fomatting(self, gameIndex):
-        print("live game formatted",gameIndex)
-        gameInfo = self.ongoingGames_inTimeRange[gameIndex]
+        gameInfo = self.liveGames_inTimeRange[gameIndex]
 
         self.live_h_player = gameInfo["home_player"]
         self.live_a_player = gameInfo["away_player"]
@@ -205,6 +222,8 @@ class scoreboard:
 
         self.live_h_score = gameInfo["home_score"]
         self.live_a_score = gameInfo["away_score"]
+
+        self.live_stadium = stadMapping[gameInfo["stadium_id"]]
 
         self.live_inning = gameInfo["inning"]
         self.live_halfInning = gameInfo["half_inning"]
@@ -244,21 +263,27 @@ class scoreboard:
             self.live_pitcherName = charMapping[gameInfo[f"away_roster_{self.live_pitcherID}_char"]]
             pitcherString = "P " + str(self.live_pitcherName)
             self.live_batterName = charMapping[gameInfo[f"home_roster_{self.live_batterID}_char"]]
-            batterString = "B " + str(self.live_batterName)
+            batterString = "AB " + str(self.live_batterName)
             homeCharString = batterString
             awayCharString = pitcherString
 
-        liveString = self.live_gameMode + "●Live".rjust(30 - len(self.live_gameMode)," ") + "\n" + \
+        #option 1
+        #liveString = self.live_gameMode + "●Live".rjust(30 - len(self.live_gameMode)," ") + "\n" + \
+            # self.live_a_player.ljust(nameLength," ") + " " + str(self.live_a_score).ljust(3," ") + awayCharString.rjust(30 - nameLength - 4) + "\n" + \
+            # self.live_h_player.ljust(nameLength," ") + " " + str(self.live_h_score).ljust(3," ") + homeCharString.rjust(30 - nameLength - 4) + "\n" + \
+            # self.live_stadium.ljust(14, " ") + str(self.live_inning) + str(halfInnChar).ljust(5, " ") + runnerString .ljust(7," ") + outsString
+        
+        #option 2
+        liveString = (str(self.live_inning) + str(halfInnChar).ljust(5, " ") + runnerString.ljust(7," ") + outsString).ljust(30 - 5, " ") + "●Live" + "\n" + \
             self.live_a_player.ljust(nameLength," ") + " " + str(self.live_a_score).ljust(3," ") + awayCharString.rjust(30 - nameLength - 4) + "\n" + \
             self.live_h_player.ljust(nameLength," ") + " " + str(self.live_h_score).ljust(3," ") + homeCharString.rjust(30 - nameLength - 4) + "\n" + \
-            str(self.live_inning) + str(halfInnChar).ljust(13, " ") + runnerString .ljust(13," ") + outsString
+            self.live_stadium + self.live_gameMode.rjust(30 - len(self.live_stadium))
+
         return liveString
 
     def decide_games_to_display(self):
-        
-        print("Live: ", live_displayInd, " recent: ", recent_displayInd)
         if live_displayInd and recent_displayInd:#both displays 
-            if self.nOngoingGames == 0: #if no live games, both show recent
+            if self.nliveGames == 0: #if no live games, both show recent
                 if self.displayedGames[0].displayStartTime < time.time() - self.displayCycleSec: #if time to change
                         self.recentGameDisplayedIndex = (self.recentGameDisplayedIndex + 1) % self.nRecentGames
                         self.displayedGames[0] = displayStruct("Recent", self.recentGameDisplayedIndex, time.time())
@@ -266,11 +291,10 @@ class scoreboard:
                         self.recentGameDisplayedIndex = (self.recentGameDisplayedIndex + 1) % self.nRecentGames
                         self.displayedGames[1] = displayStruct("Recent", self.recentGameDisplayedIndex, time.time())
             else: #if there's at least 1 live game
-                print("Decision: show some live games")
                 #live display
                 if self.displayedGames[0].displayStartTime < time.time() - self.displayCycleSec: #if time to change
-                    if self.nOngoingGames > 1: #if more than 1 live game, then just rotate between them
-                        self.liveGameDisplayedIndex = (self.liveGameDisplayedIndex + 1) % self.nOngoingGames
+                    if self.nliveGames > 1: #if more than 1 live game, then just rotate between them
+                        self.liveGameDisplayedIndex = (self.liveGameDisplayedIndex + 1) % self.nliveGames
                         self.displayedGames[0] = displayStruct("Live", self.liveGameDisplayedIndex, time.time())
                     else: #just show single live game
                         self.displayedGames[0] = displayStruct("Live", 0, time.time())
@@ -281,11 +305,11 @@ class scoreboard:
         elif live_displayInd and not recent_displayInd: #just live display
             self.displayedGames[1] = displayStruct("None", 0, 0)
             if self.displayedGames[0].displayStartTime < time.time() - self.displayCycleSec: #if time to change
-                if self.nOngoingGames == 0: #if no live games, show recent
+                if self.nliveGames == 0: #if no live games, show recent
                     self.recentGameDisplayedIndex = (self.recentGameDisplayedIndex + 1) % self.nRecentGames
-                    self.displayedGames[1] = displayStruct("Recent", self.recentGameDisplayedIndex, time.time())
-                elif self.nOngoingGames > 1: #if more than 1 live game, then just rotate between them
-                    self.liveGameDisplayedIndex = (self.liveGameDisplayedIndex + 1) % self.nOngoingGames
+                    self.displayedGames[0] = displayStruct("Recent", self.recentGameDisplayedIndex, time.time())
+                elif self.nliveGames > 1: #if more than 1 live game, then just rotate between them
+                    self.liveGameDisplayedIndex = (self.liveGameDisplayedIndex + 1) % self.nliveGames
                     self.displayedGames[0] = displayStruct("Live", self.liveGameDisplayedIndex, time.time())
                 else: #rotate live game with 1 recent game
                     if self.displayedGames[0].gameType == "Live":
@@ -302,12 +326,6 @@ class scoreboard:
         else:
             self.displayedGames[0] = displayStruct("None", 0, 0)
             self.displayedGames[1] = displayStruct("None", 0, 0)
-    
-        print(self.displayedGames[0].displayStartTime, self.displayedGames[0].gameIndex, self.displayedGames[0].gameType)
-        print(self.displayedGames[1].displayStartTime, self.displayedGames[1].gameIndex, self.displayedGames[1].gameType)
-
-
-
 
     def update_displays(self):
         liveDisplay_source = S.obs_get_source_by_name("liveDisplay")
@@ -336,8 +354,9 @@ class scoreboard:
 
 
 def update_display_pressed(props, prop):
-    global live_displayInd
+
     global recent_displayInd
+    global live_displayInd
     live_displayInd = S.obs_data_get_bool(globalsettings, "_live_game_display")
     recent_displayInd = S.obs_data_get_bool(globalsettings, "_recent_game_display")
 
@@ -347,39 +366,47 @@ def update_display_pressed(props, prop):
 
     liveDisplay = S.obs_scene_find_source(sb.scene,'liveDisplay')
 
-    if liveDisplay is None and live_displayInd: #source doesn't exist, and the checkbox is true, then create
-            settings = S.obs_data_create()
-            #if sb.platform == 'MacOS':
-            #    liveDisplay = S.obs_source_create("text_ft2_source", 'liveDisplay', settings, None)
-            #else:
-            liveDisplay = S.obs_source_create("text_gdiplus", 'liveDisplay', settings, None)
-            S.obs_scene_add(sb.scene, liveDisplay)
-            S.obs_source_release(liveDisplay)
-            S.obs_data_release(settings)
+    if liveDisplay is None and live_displayInd: #source doesn't exist, and the checkbox is true, then create            
+        sb.get_live_games(time.time()-60*60*1*1)
+
+        settings = S.obs_data_create()
+        #if sb.platform == 'MacOS':
+        #    liveDisplay = S.obs_source_create("text_ft2_source", 'liveDisplay', settings, None)
+        #else:
+        liveDisplay = S.obs_source_create("text_gdiplus", 'liveDisplay', settings, None)
+        S.obs_scene_add(sb.scene, liveDisplay)
+        S.obs_source_release(liveDisplay)
+        S.obs_data_release(settings)
     
     if liveDisplay is not None and not live_displayInd: #source exists and the checkbox is false, then remove
         S.obs_sceneitem_remove(liveDisplay)
 
+
     recentDisplay = S.obs_scene_find_source(sb.scene,'recentDisplay')
 
     if recentDisplay is None and recent_displayInd: #source doesn't exist, and the checkbox is true, then create
-            settings = S.obs_data_create()
-            #if sb.platform == 'MacOS':
-            #    recentDisplay = S.obs_source_create("text_ft2_source", 'recentDisplay', settings, None)
-            #else:
-            recentDisplay = S.obs_source_create("text_gdiplus", 'recentDisplay', settings, None)
-            S.obs_scene_add(sb.scene, recentDisplay)
-            S.obs_source_release(recentDisplay)
-            S.obs_data_release(settings)
+        recent_displayInd = True
+
+        sb.get_recent_games(sb.nRecentGames)
+
+        settings = S.obs_data_create()
+        #if sb.platform == 'MacOS':
+        #    recentDisplay = S.obs_source_create("text_ft2_source", 'recentDisplay', settings, None)
+        #else:
+        recentDisplay = S.obs_source_create("text_gdiplus", 'recentDisplay', settings, None)
+        S.obs_scene_add(sb.scene, recentDisplay)
+        S.obs_source_release(recentDisplay)
+        S.obs_data_release(settings)
     
     if recentDisplay is not None and not recent_displayInd: #source exists and the checkbox is false, then remove
         S.obs_sceneitem_remove(recentDisplay)
+        recent_displayInd = False
 
 
 
 def script_load(settings):
 
-    S.timer_add(check_for_updates, 2000)
+    S.timer_add(check_for_updates, 5000)
 
     global globalsettings
     globalsettings = settings
@@ -392,6 +419,11 @@ def script_load(settings):
 
     global test_bool
     test_bool = False
+    
+    global live_displayInd
+    global recent_displayInd
+    live_displayInd = S.obs_data_get_bool(globalsettings, "_live_game_display")
+    recent_displayInd = S.obs_data_get_bool(globalsettings, "_recent_game_display")
 
 def check_for_updates():
     if pause_bool == False:
@@ -400,15 +432,12 @@ def check_for_updates():
         
         if sb.live_gameInd:
             if sb.time_gotLiveGames < time.time() - 20: #call every 20 seconds if there is a live game occuring
-                sb.get_live_games(time.time()-60*60*2*1)
-                print("called live games")
+                sb.get_live_games(time.time()-60*60*1*1)
         else:
             if sb.time_gotLiveGames < time.time() - 5*60: #call every 5 minutes if there are no live games occuring
-                sb.get_live_games(time.time()-60*60*2*1)
-                print("called live games")
-        if sb.time_gotRecentGames < time.time() - 30*60: #call every 30 minutes TODO if a live game just ends, call again
+                sb.get_live_games(time.time()-60*60*1*1)
+        if sb.time_gotRecentGames < time.time() - 30*60: #calls every 60 minutes. If the live games list shrinks, it also calls this function.
             sb.get_recent_games(sb.nRecentGames)
-            print("called recent games")
         
         sb.decide_games_to_display()
         sb.update_displays()
