@@ -99,7 +99,9 @@ class rosterimages:
     #Used when reverting from the captains only layout
     def enable_roster_images(self):
         for i in range(0, len(self.roster_image_list)):
-            S.obs_source_set_enabled(S.obs_get_source_by_name(self.roster_image_list[i][0]), True)
+            source = S.obs_get_source_by_name(self.roster_image_list[i][0])
+            S.obs_source_set_enabled(source, True)
+            S.obs_source_release(source)
 
     #Used for auto-enableing the rosters after event 0a
     def set_visible(self):
@@ -360,14 +362,14 @@ class rosterimages:
             self.away_indicator_scale_multiplier_small = 0
             self.away_indicator_scale_multiplier_large = 0
         else:
-            self.away_indicator_scale_multiplier_small = (self.image_width)/S.obs_source_get_width(S.obs_get_source_by_name('away_indicator'))
+            self.away_indicator_scale_multiplier_small = (self.image_width)/S.obs_source_get_width(away_indicator)
             self.away_indicator_scale_multiplier_large = self.away_indicator_scale_multiplier_small * self.captain_size_multiplier
 
         if S.obs_source_get_width(home_indicator) == 0:
             self.home_indicator_scale_multiplier_small = 0
             self.home_indicator_scale_multiplier_large = 0
         else:
-            self.home_indicator_scale_multiplier_small = (self.image_width) / S.obs_source_get_width(S.obs_get_source_by_name('home_indicator'))
+            self.home_indicator_scale_multiplier_small = (self.image_width) / S.obs_source_get_width(home_indicator)
             self.home_indicator_scale_multiplier_large = self.home_indicator_scale_multiplier_small * self.captain_size_multiplier
 
         S.obs_source_release(away_indicator)
