@@ -491,7 +491,7 @@ class pitcherstats:
                     sacfly = " Sac Fly" if self.b_h_sac_flys == 1 else " Sac Flies"
                     b_custom_stats_list.append(str(self.b_h_sac_flys) + sacfly)
                 if i == 8:
-                    strikeout = " strikeout" if self.b_h_strikeouts == 1 else " Strikeouts"
+                    strikeout = " Strikeout" if self.b_h_strikeouts == 1 else " Strikeouts"
                     b_custom_stats_list.append(str(self.b_h_strikeouts) + strikeout)
                 if i == 9:
                     walk = " Walk" if self.b_h_walks == 1 else " Walks"

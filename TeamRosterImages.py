@@ -116,6 +116,8 @@ class rosterimages:
         S.obs_data_set_string(settings, 'file', str(images_directory) + image_name + '.png')
         source = S.obs_source_create('image_source', OBS_name, settings, None)
         S.obs_scene_add(scene, source)
+        S.obs_data_release(settings)
+        S.obs_source_release(source)
 
     def add_captains(self):
         current_scene = S.obs_frontend_get_current_scene()
@@ -131,6 +133,8 @@ class rosterimages:
         else:
             Home_Captain_Text = S.obs_source_create('text_gdiplus', self.home_player_text_source, settings, None)
         S.obs_scene_add(self.scene, Home_Captain_Text)
+        S.obs_data_release(settings)
+        S.obs_source_release(Home_Captain_Text)
 
         settings = S.obs_data_create()
         if self.platform == 'MacOS':
@@ -138,6 +142,9 @@ class rosterimages:
         else:
             Away_Captain_Text = S.obs_source_create('text_gdiplus', self.away_player_text_source, settings, None)
         S.obs_scene_add(self.scene, Away_Captain_Text)
+        S.obs_data_release(settings)
+        S.obs_source_release(Away_Captain_Text)
+
         text_postions = S.vec2()
         text_postions.x = 500
         text_postions.y = 500
@@ -147,6 +154,7 @@ class rosterimages:
         #Batting and Fielding Icons
         self.add_image_source('bat', 'away_indicator', self.scene)
         S.obs_sceneitem_group_add_item(away_group, S.obs_scene_find_source(self.scene, 'away_indicator'))
+
         self.add_image_source('glove', 'home_indicator', self.scene)
         S.obs_sceneitem_group_add_item(home_group, S.obs_scene_find_source(self.scene, 'home_indicator'))
 
@@ -163,7 +171,6 @@ class rosterimages:
     def dir_scan(self):
         hud_file_path = S.obs_data_get_string(globalsettings, '_path')
         hud_file_path = hud_file_path.replace("\\", "/")
-        print(hud_file_path)
 
         if not os.path.isfile(hud_file_path):
             return ''
@@ -180,7 +187,6 @@ class rosterimages:
             return self.current_event_num
 
         global visible_bool
-        print(visible_bool)
 
         if visible_bool is True and hud_data['Event Num'] == '0b':
             self.set_visible()
@@ -228,9 +234,6 @@ class rosterimages:
         self.roster_image_list[home_captain_index][1] = 0
         self.roster_image_list[away_captain_index+9][1] = 1
 
-        print(self.roster_image_list[away_captain_index][2])
-        print(self.roster_image_list[home_captain_index][2])
-
     def update_images(self):
         if (self.new_event == 0):
             return self.current_event_num
@@ -246,7 +249,6 @@ class rosterimages:
         source = S.obs_get_source_by_name(self.home_player_text_source)
         settings = S.obs_data_create()
         S.obs_data_set_string(settings, 'text', str(self.home_player))
-
         S.obs_source_update(source, settings)
         S.obs_data_release(settings)
         S.obs_source_release(source)
@@ -590,7 +592,6 @@ def check_for_updates():
        getimage.dir_scan()
        getimage.update_images()
 
-
 def script_update(settings):
     current_scene = S.obs_frontend_get_current_scene()
     getimage.scene = S.obs_scene_from_source(current_scene)
@@ -612,7 +613,7 @@ def script_update(settings):
 
 
 def script_description():
-    return 'Mario Baseball team roster images\nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
+    return 'Version 1.2 Mario Baseball team roster images\nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
 
 def add_pressed(props, prop):
     getimage.add_captains()
@@ -631,7 +632,8 @@ def refresh_pressed(props, prop):
     getimage.update_images()
 
 def remove_pressed(props, prop):
-    S.obs_source_remove(S.obs_get_source_by_name(getimage.home_group))
+    source = S.obs_get_source_by_name(getimage.home_group)
+    S.obs_source_remove(source)
     S.obs_source_remove(S.obs_get_source_by_name(getimage.away_group))
     S.obs_source_remove(S.obs_get_source_by_name(getimage.away_player_text_source))
     S.obs_source_remove(S.obs_get_source_by_name(getimage.home_player_text_source))
@@ -740,7 +742,10 @@ def font_callback(props, prop, settings):
     source = S.obs_get_source_by_name(getimage.away_player_text_source)
     S.obs_data_set_bool(settings, 'outline', True)
     S.obs_source_update(source, settings)
+    S.obs_source_release(source)
+
     source = S.obs_get_source_by_name(getimage.home_player_text_source)
     S.obs_source_update(source, settings)
+    S.obs_source_release(source)
 
     return True
