@@ -642,7 +642,7 @@ def script_update(settings):
 
 
 def script_description():
-    return 'Version 2.0 Mario Baseball team roster images\nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
+    return 'Mario Baseball Team HUD Version 1.1 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
 
 def add_pressed(props, prop):
     getimage.add_captains()
