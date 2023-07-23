@@ -190,17 +190,19 @@ class rosterimages:
 
         global visible_bool
 
-        if visible_bool is True and hud_data['Event Num'] == '0b':
+        if visible_bool is True and ((hud_data['Event Num'] == '0b')
+                                     or (self.current_event_num == '0b')
+                                     or (int(hud_data['Event Num'][:-1]) < int(self.current_event_num[:-1]))):
             self.set_visible()
             print("visible")
+
+        self.current_event_num = hud_data['Event Num']
 
         print(hud_data['Event Num'])
 
         self.halfinning = hud_data['Half Inning']
 
         self.new_event = 1
-
-        self.current_event_num = hud_data['Event Num']
 
         self.home_player = hud_data['Home Player']
         self.away_player = hud_data['Away Player']
@@ -642,7 +644,7 @@ def script_update(settings):
 
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 1.1 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
+    return 'Mario Baseball Team HUD Version 1.2 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
 
 def add_pressed(props, prop):
     getimage.add_captains()
