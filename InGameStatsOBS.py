@@ -512,7 +512,7 @@ class pitcherstats:
             self.b_stats_string += line + "\n"
 
         p_seasonAvg_stat_string = self.p_t_stats_string 
-        p_game_stat_string = "Pitcher: " + str(self.p_h_pitcher) + "\n" + "Season Stats:\n" + str('ERA: {0:.1f}\n'.format(float(self.p_t_ERA))) + "Opp AVG: " + str('{0:.3f} \n'.format(float(self.p_t_oppAvg))) + 'Game Stats:\n'
+        p_game_stat_string = f'Pitcher: {self.p_h_pitcher} \n Season Stats:\n ERA: {self.p_t_ERA:.1f}\n Opp AVG: {self.p_t_oppAvg:.3f} \n Game Stats:\n'
         for line in self.p_hud_stats_string[1:]:
             p_game_stat_string += line + "\n"
 
@@ -527,6 +527,7 @@ class pitcherstats:
             S.obs_source_update(b_source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(b_source)
+        S.obs_source_release(b_source)
 
         p_source = S.obs_get_source_by_name("pitcher_combined_stats_text")
         if p_source is not None:
@@ -535,6 +536,7 @@ class pitcherstats:
             S.obs_source_update(p_source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(p_source)
+        S.obs_source_release(p_source)
 
     def summary_stats_display(self):
         source = S.obs_get_source_by_name("batter_summary_stats_text")
