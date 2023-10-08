@@ -3,7 +3,9 @@ import os
 import json
 import platform as plt
 
-#def script_defaults(settings):
+def script_description():
+    return 'Mario Baseball Team HUD Version 1.3.4 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
+
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
 
@@ -20,7 +22,7 @@ class rosterimages:
         self.away_team_captain = str()
         self.home_team_captain = str()
 
-        self.current_event_num = -1
+        self.current_event_num = '-1a'
 
         current_scene = S.obs_frontend_get_current_scene()
         self.scene = S.obs_scene_from_source(current_scene)
@@ -85,7 +87,7 @@ class rosterimages:
             self.platform = 'MacOS'
             current_path = str(os.path.realpath(__file__))
             '''self.HUD_path = '/' + current_path.split('/', 3)[1] + '/' + current_path.split('/', 3)[
-                2] + '/' + 'Library/Application Support/ProjectRio/HudFiles/decoded.hud.json' '''
+                2] + '/' + 'Library/Application Support/Project Rio/HudFiles/decoded.hud.json' '''
         elif str(plt.platform()).lower()[0] == 'w':
             self.platform = 'Windows'
             current_path = str(os.path.realpath(__file__))
@@ -192,9 +194,15 @@ class rosterimages:
 
         if visible_bool is True and ((hud_data['Event Num'] == '0b')
                                      or (self.current_event_num == '0b')
-                                     or (int(hud_data['Event Num'][:-1]) < int(self.current_event_num[:-1]))):
+                                     or (int(str(hud_data['Event Num'])[:-1]) < int(str(self.current_event_num)[:-1]))):
+            
+            if (self.away_player == hud_data['Home Player']) and (self.home_player == hud_data['Away Player']):
+                print('flipped')
+                flip_teams('', '')
+
             self.set_visible()
             print("visible")
+
 
         self.current_event_num = hud_data['Event Num']
 
@@ -642,10 +650,6 @@ def script_update(settings):
     S.obs_source_release(away_indicator_source)
     S.obs_source_release(home_indicator_source)
 
-
-def script_description():
-    return 'Mario Baseball Team HUD Version 1.2 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
-
 def add_pressed(props, prop):
     getimage.add_captains()
     getimage.new_event = 1
@@ -749,7 +753,7 @@ def OS_callback(props, prop, settings):
         S.obs_property_set_visible(S.obs_properties_get(props, "_path"), False)
     elif S.obs_data_get_string(settings, '_OS_list') == 'macOS':
         current_path = str(os.path.realpath(__file__))
-        HUD_Path = '/'+current_path.split('/', 3)[1] + '/' + current_path.split('/', 3)[2] + '/' + 'Library/Application Support/ProjectRio/HudFiles/decoded.hud.json'
+        HUD_Path = '/'+current_path.split('/', 3)[1] + '/' + current_path.split('/', 3)[2] + '/' + 'Library/Application Support/Project Rio/HudFiles/decoded.hud.json'
         S.obs_data_set_string(settings, '_path', HUD_Path)
         S.obs_property_set_visible(S.obs_properties_get(props, "_path"), False)
     else:
