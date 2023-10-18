@@ -136,6 +136,8 @@ class pitcherstats:
 
         self.debugMode = False
 
+        self.game_start = False
+
         if str(plt.platform()).lower()[0] == 'm':
             self.platform = 'MacOS'
             current_path = str(os.path.realpath(__file__))
@@ -251,6 +253,46 @@ class pitcherstats:
             if comm["comm_type"] == 'Official' and comm["end_date"] > time.time():
                 self.mode_names.append(comm['name'])
 
+    
+    def get_web_stats(self):
+        if self.debugMode:
+            print("get web stats")
+
+        url_base = "https://api.projectrio.app/stats/?"
+        
+        #check if the stats should be filtered by game mode
+        web_stat_mode = S.obs_data_get_string(globalsettings, "_web_mode_list")
+        if web_stat_mode == "all":
+            mode_url_addition = ""
+        else:
+            mode_url_addition = "&tag=" + web_stat_mode
+
+        url_home = url_base + "&by_char=1&username=" + self.home_player + mode_url_addition
+        url_away = url_base + "&by_char=1&username=" + self.away_player + mode_url_addition
+        
+        if self.debugMode:
+            print(url_home)
+            print(url_away)
+
+        #check if stats were found for each player.
+        self.web_home_statsFound = False
+        self.web_away_statsFound = False
+        try:
+            self.web_data_home = json.loads(urlopen(url_home).read())
+            self.web_home_statsFound = True   
+        except:
+            self.web_home_statsFound = False
+        
+        try:
+            self.web_data_away = json.loads(urlopen(url_away).read())
+            self.web_away_statsFound = True    
+        except:
+            self.web_away_statsFound = False
+        self.calledWebInd = True
+        
+        print("Home stats found:", self.web_home_statsFound)
+        print("Away stats found:", self.web_away_statsFound)
+
     def parse_web_stats(self):
         if self.debugMode:
             print("parse web stats")
@@ -328,6 +370,10 @@ class pitcherstats:
             self.p_w_strikeouts = 0
             self.p_w_outs = 0
 
+    def set_visible(self):
+        S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, "batter_summary_stats_text"), True)
+        S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, "pitcher_summary_stats_text"), True)
+
     def summary_stats(self):
         if self.debugMode:
             print("summary stats")
@@ -366,6 +412,9 @@ class pitcherstats:
             hud_data = json.load(f)
 
         # Return if the event hasn't changed
+        if str(hud_data['Event Num'])[0] == '0':
+            self.game_start = True
+
         if (self.current_event_num == hud_data['Event Num']):
             if (self.new_event != 1):
                 return self.current_event_num
@@ -376,6 +425,18 @@ class pitcherstats:
 
         self.home_player = hud_data["Home Player"]
         self.away_player = hud_data["Away Player"]
+
+        global visible_bool
+
+        print(f"game start bool {self.game_start}")
+
+        if (visible_bool is True) and (self.current_event_num[0] != '0') and (self.game_start == True):
+            S.timer_remove(check_for_updates)
+            self.get_web_stats()
+            self.set_visible()
+            print("stats visible")
+            self.game_start = False
+            S.timer_add(check_for_updates, 1000)
 
         # Bookkeepping vars
         if "Previous Event" in hud_data.keys():
@@ -607,6 +668,12 @@ def script_load(settings):
     global globalsettings
     globalsettings = settings
 
+    global HUD_path
+    HUD_path = S.obs_data_get_string(settings, "_path")
+
+    global visible_bool
+    visible_bool = S.obs_data_get_bool(settings, '_visible')
+
     global getstats
     getstats = pitcherstats()
 
@@ -615,8 +682,6 @@ def script_load(settings):
 
     getstats.summary_stats()
     
-    global HUD_path
-    HUD_path = S.obs_data_get_string(settings, "_path")
 
 def check_for_updates():
    if pause_bool == False:
@@ -624,6 +689,7 @@ def check_for_updates():
         getstats.summary_stats()
         getstats.custom_stats()
         getstats.summary_stats_display()
+        
 
         #new - eventually delete the other displays
         getstats.stat_output_create()
@@ -639,6 +705,9 @@ def script_update(settings):
 
     global pause_bool
     pause_bool = S.obs_data_get_bool(settings, "_pause")
+
+    global visible_bool
+    visible_bool = S.obs_data_get_bool(settings, '_visible')
 
 def script_description():
     return "Mario Baseball Pitcher Stats\n" \
@@ -737,45 +806,6 @@ def toggle_stat_display_pressed(props, prop):
     
 def flip_teams(props, prop):
     getstats.flip_teams()
-
-def get_web_stats(props, prop):
-    if getstats.debugMode:
-        print("get web stats")
-
-    url_base = "https://api.projectrio.app/stats/?"
-    
-    #check if the stats should be filtered by game mode
-    web_stat_mode = S.obs_data_get_string(globalsettings, "_web_mode_list")
-    if web_stat_mode == "all":
-        mode_url_addition = ""
-    else:
-        mode_url_addition = "&tag=" + web_stat_mode
-
-    url_home = url_base + "&by_char=1&username=" + getstats.home_player + mode_url_addition
-    url_away = url_base + "&by_char=1&username=" + getstats.away_player + mode_url_addition
-    
-    if getstats.debugMode:
-        print(url_home)
-        print(url_away)
-
-    #check if stats were found for each player.
-    getstats.web_home_statsFound = False
-    getstats.web_away_statsFound = False
-    try:
-        getstats.web_data_home = json.loads(urlopen(url_home).read())
-        getstats.web_home_statsFound = True   
-    except:
-        getstats.web_home_statsFound = False
-    
-    try:
-        getstats.web_data_away = json.loads(urlopen(url_away).read())
-        getstats.web_away_statsFound = True    
-    except:
-        getstats.web_away_statsFound = False
-    getstats.calledWebInd = True
-    
-    print("Home stats found:", getstats.web_home_statsFound)
-    print("Away stats found:", getstats.web_away_statsFound)
     
 def script_properties():
     props = S.obs_properties_create()
@@ -801,7 +831,9 @@ def script_properties():
     #add dropdown for modes to filter web stats
     web_mode_list = S.obs_properties_add_list(props, "_web_mode_list", "Mode for Web Stats:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     
+
     #if the list of modes was already fetched, don't do it again.
+    global getstats
     if getstats.got_modes == False:
         getstats.get_active_modes()
         getstats.got_modes = True
@@ -809,18 +841,25 @@ def script_properties():
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
 
-    S.obs_property_list_add_string(web_mode_list, 'StarsOffSeason5', 'StarsOffSeason5')
-    S.obs_property_list_add_string(web_mode_list, 'StarsOffSeason5', 'StarsOffSeason5')
-    S.obs_property_list_add_string(web_mode_list, 'StarsOnSeason5', 'StarsOnSeason5')
-    S.obs_property_list_add_string(web_mode_list, 'BigBallaSeason5', 'BigBallaSeason5')
+    S.obs_property_list_add_string(web_mode_list, 'Stars Off Season7', 'StarsOffSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'Stars On Season 7', 'StarsOnHazardousSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'Big Balla Season 7', 'BigBallaRandomsSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Season 7', 'StarsOffHazardousSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Randoms Season 7', 'StarsOffHazardousRandomsSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Season 7', 'StarsOffMegaSeason7')
     # for i in range(len(getstats.mode_names)):
     # S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
 
-    S.obs_properties_add_button(props, "_getWebStats", "Get Web Stats", get_web_stats)
+    S.obs_properties_add_button(props, "_getWebStats", "Get Web Stats", get_stats_func)
+
+    S.obs_properties_add_bool(props, '_visible', 'Automatically make visible and fetch stats:')
 
     S.obs_property_set_modified_callback(OS_list, OS_callback)
 
     return props
+
+def get_stats_func(props, prop):
+    getstats.get_web_stats()
 
 def OS_callback(props, prop, settings):
     if S.obs_data_get_string(settings, "_OS_list") == "windows":

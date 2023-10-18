@@ -206,7 +206,7 @@ def script_update(settings):
 
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 1.2 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
+    return 'Mario Baseball Team HUD Version 1.2a \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
 
 def add_pressed(props, prop):
     inning_source_display.add_captains()
