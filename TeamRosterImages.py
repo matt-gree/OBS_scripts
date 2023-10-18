@@ -2,9 +2,10 @@ import obspython as S
 import os
 import json
 import platform as plt
+import TeamNameAlgo
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 1.3.4 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
+    return 'Mario Baseball Team HUD Version 1.3.11 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
 
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
@@ -19,8 +20,8 @@ class rosterimages:
 
         self.halfinning = 0
 
-        self.away_team_captain = str()
-        self.home_team_captain = str()
+        self.away_captain_index = -1
+        self.home_captain_index = -1
 
         self.current_event_num = '-1a'
 
@@ -54,10 +55,20 @@ class rosterimages:
         self.home_player_text_source = 'Home Player'
         self.away_player_text_source = 'Away Player'
 
+        self.away_roster = ''
+        self.home_roster = ''
+
+        self.away_team_name = ''
+        self.home_team_name = ''
 
         self.indicator_image_list = [
             ['away_indicator', S.vec2()],
             ['home_indicator', S.vec2()]
+        ]
+
+        self.logo_image_list = [
+            ['Away Logo', '', S.vec2()],
+            ['Home Logo', '', S.vec2()]
         ]
 
         self.new_event = 0
@@ -162,9 +173,16 @@ class rosterimages:
         self.add_image_source('glove', 'home_indicator', self.scene)
         S.obs_sceneitem_group_add_item(home_group, S.obs_scene_find_source(self.scene, 'home_indicator'))
 
+        #Team Logos
+        self.add_image_source(self.logo_image_list[0][1], 'Away Logo', self.scene)
+        S.obs_sceneitem_group_add_item(away_group, S.obs_scene_find_source(self.scene, 'Away Logo'))
+
+        self.add_image_source(self.logo_image_list[1][1], 'Home Logo', self.scene)
+        S.obs_sceneitem_group_add_item(home_group, S.obs_scene_find_source(self.scene, 'Home Logo'))
+
         #Team Roster
         for i in range(0,len(self.roster_image_list)):
-            self.add_image_source(str(self.away_team_captain), self.roster_image_list[i][0], self.scene)
+            self.add_image_source('', self.roster_image_list[i][0], self.scene)
             if i < 9:
                 S.obs_sceneitem_group_add_item(away_group,
                                                S.obs_scene_find_source(self.scene, self.roster_image_list[i][0]))
@@ -221,30 +239,41 @@ class rosterimages:
             for roster in range(9):
                 team_roster_str = f'{team_string} Roster {roster}'
                 captain = hud_data[team_roster_str]['Captain']
+                #print(team_roster_str, hud_data[team_roster_str])
+                #print(roster, captain)
                 char_id = hud_data[team_roster_str]['CharID']
-                index = roster + team * 9
+                index = roster + (team * 9)
+                print(index)
                 self.roster_image_list[index][2] = str(char_id)
                 self.roster_image_list[index][1] = 1 if captain == 1 else 0
 
-        away_captain_index = -1
-        home_captain_index = -1
-        for index in range(0,18):
-            if self.roster_image_list[index][1] == 1:
-                if index < 9:
-                    away_captain_index = index
+        for i in range(0,18):
+            if self.roster_image_list[i][1] == 1:
+                if i < 9:
+                    self.away_captain_index = i
                 else:
-                    home_captain_index = index
+                    self.home_captain_index = i
 
-        if away_captain_index == -1:
+
+        if self.away_captain_index == -1:
             raise ValueError("Away captain not found:")
 
-        if home_captain_index == -1:
+        if self.home_captain_index == -1:
             raise ValueError("Home captain not found:")
+        
+        self.roster_image_list[self.away_captain_index][1] = 0
+        self.roster_image_list[self.home_captain_index-9][1] = 1
+        self.roster_image_list[self.home_captain_index][1] = 0
+        self.roster_image_list[self.away_captain_index+9][1] = 1
 
-        self.roster_image_list[away_captain_index][1] = 0
-        self.roster_image_list[home_captain_index-9][1] = 1
-        self.roster_image_list[home_captain_index][1] = 0
-        self.roster_image_list[away_captain_index+9][1] = 1
+        self.away_roster = [element[2] for element in self.roster_image_list[:9]]
+        self.home_roster = [element[2] for element in self.roster_image_list[9:]]
+
+        print(self.away_roster)
+        print(self.home_roster)
+
+        self.logo_image_list[0][1] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[self.home_captain_index-9][2])
+        self.logo_image_list[1][1] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[self.away_captain_index+9][2])
 
     def update_images(self):
         if (self.new_event == 0):
@@ -254,6 +283,14 @@ class rosterimages:
             settings = S.obs_data_create()
             S.obs_data_set_string(settings, 'file', str(images_directory) + str(image[2]) + '.png')
             source = S.obs_get_source_by_name(image[0])
+            S.obs_source_update(source, settings)
+            S.obs_data_release(settings)
+            S.obs_source_release(source)
+
+        for logo in self.logo_image_list:
+            source = S.obs_get_source_by_name(logo[0])
+            settings = S.obs_data_create()
+            S.obs_data_set_string(settings, 'file', str(images_directory) + logo[1] + '.png')
             S.obs_source_update(source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(source)
@@ -785,7 +822,7 @@ def layout_callback(props, prop, settings):
 def font_callback(props, prop, settings):
     S.obs_data_set_obj(settings, 'font', S.obs_data_get_obj(settings, '_player_font'))
     source = S.obs_get_source_by_name(getimage.away_player_text_source)
-    S.obs_data_set_bool(settings, 'outline', True)
+    S.obs_data_set_bool(settings, 'outline', False)
     S.obs_source_update(source, settings)
     S.obs_source_release(source)
 
