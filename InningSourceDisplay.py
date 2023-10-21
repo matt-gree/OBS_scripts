@@ -2,19 +2,17 @@ import obspython as S
 import os
 import json
 import platform as plt
+import RioHudLib
 
 #def script_defaults(settings):
 
-class rosterimages:
+def script_description():
+    return 'Mario Baseball Inning End Source Enabler Version 0.2.0'
+
+class SourceDisplay:
     def __init__(self):
 
-        self.location = S.vec2()
-
-        self.inning
-        self.halfinning = 0
-
-        self.away_team_captain = str()
-        self.home_team_captain = str()
+        self.inning_float = 0.0
 
         self.current_event_num = -1
 
@@ -40,14 +38,6 @@ class rosterimages:
         else:
             self.platform = 'Unknown'
 
-    #Used when reverting from the captains only layout
-    def enable_roster_images(self):
-        for i in range(0, len(self.roster_image_list)):
-            source = S.obs_get_source_by_name(self.roster_image_list[i][0])
-            S.obs_source_set_enabled(source, True)
-            S.obs_source_release(source)
-
-    #Used for auto-enableing the rosters after event 0a
     def set_visible(self):
         for i in range(0, len(self.roster_image_list)):
             S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), True)
@@ -55,64 +45,6 @@ class rosterimages:
         S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, self.away_group), True)
         S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, self.home_player_text_source), True)
         S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, self.away_player_text_source), True)
-
-    def add_image_source(self, image_name, OBS_name, scene):
-        #will only add images in the images_directory
-        settings = S.obs_data_create()
-        S.obs_data_set_string(settings, 'file', str(images_directory) + image_name + '.png')
-        source = S.obs_source_create('image_source', OBS_name, settings, None)
-        S.obs_scene_add(scene, source)
-        S.obs_data_release(settings)
-        S.obs_source_release(source)
-
-    def add_captains(self):
-        current_scene = S.obs_frontend_get_current_scene()
-        self.scene = S.obs_scene_from_source(current_scene)
-        S.obs_source_release(current_scene)
-
-        home_group = S.obs_scene_add_group(self.scene, self.home_group)
-        away_group = S.obs_scene_add_group(self.scene, self.away_group)
-        #Home and Away Player Names
-        settings = S.obs_data_create()
-        if self.platform == 'MacOS':
-            Home_Captain_Text = S.obs_source_create('text_ft2_source', self.home_player_text_source, settings, None)
-        else:
-            Home_Captain_Text = S.obs_source_create('text_gdiplus', self.home_player_text_source, settings, None)
-        S.obs_scene_add(self.scene, Home_Captain_Text)
-        S.obs_data_release(settings)
-        S.obs_source_release(Home_Captain_Text)
-
-        settings = S.obs_data_create()
-        if self.platform == 'MacOS':
-            Away_Captain_Text = S.obs_source_create('text_ft2_source', self.away_player_text_source, settings, None)
-        else:
-            Away_Captain_Text = S.obs_source_create('text_gdiplus', self.away_player_text_source, settings, None)
-        S.obs_scene_add(self.scene, Away_Captain_Text)
-        S.obs_data_release(settings)
-        S.obs_source_release(Away_Captain_Text)
-
-        text_postions = S.vec2()
-        text_postions.x = 500
-        text_postions.y = 500
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.home_player_text_source), text_postions)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.away_player_text_source), text_postions)
-
-        #Batting and Fielding Icons
-        self.add_image_source('bat', 'away_indicator', self.scene)
-        S.obs_sceneitem_group_add_item(away_group, S.obs_scene_find_source(self.scene, 'away_indicator'))
-
-        self.add_image_source('glove', 'home_indicator', self.scene)
-        S.obs_sceneitem_group_add_item(home_group, S.obs_scene_find_source(self.scene, 'home_indicator'))
-
-        #Team Roster
-        for i in range(0,len(self.roster_image_list)):
-            self.add_image_source(str(self.away_team_captain), self.roster_image_list[i][0], self.scene)
-            if i < 9:
-                S.obs_sceneitem_group_add_item(away_group,
-                                               S.obs_scene_find_source(self.scene, self.roster_image_list[i][0]))
-            else:
-                S.obs_sceneitem_group_add_item(home_group,
-                                               S.obs_scene_find_source(self.scene, self.roster_image_list[i][0]))
 
     def dir_scan(self):
         hud_file_path = S.obs_data_get_string(globalsettings, '_path')
@@ -124,33 +56,30 @@ class rosterimages:
         with open(hud_file_path) as f:
             hud_data = json.load(f)
 
+        hud_data = RioHudLib.hudObj(hud_data)
+
         # Return if the event hasn't changed
-        if (self.current_event_num == hud_data['Event Num']):
+        if (self.current_event_num == hud_data.event_number):
             if (self.new_event != 1):
                 return self.current_event_num
 
-        if hud_data['Event Num'] == '0a':
+        if hud_data.event_number == '0a':
             return self.current_event_num
 
-        global visible_bool
+        self.current_event_num = hud_data.event_number
 
-        if visible_bool is True and ((hud_data['Event Num'] == '0b')
-                                     or (self.current_event_num == '0b')
-                                     or (int(str(hud_data['Event Num'])[:-1]) < int(str(self.current_event_num[:-1])))):
-            self.set_visible()
-            print("visible")
+        self.inning_float = hud_data.inning_float()
 
-        self.current_event_num = hud_data['Event Num']
-
-        print(hud_data['Event Num'])
-
-        self.inning = hud_data['Inning']
-        self.halfinning = hud_data['Half Inning']
-
-        self.new_event = 1
-
-        self.home_player = hud_data['Home Player']
-        self.away_player = hud_data['Away Player']
+        if (hud_data.inning_end() == True) & (self.inning_float < 10):
+            previous_source_str = S.obs_data_get_string(globalsettings, f'_{self.inning_float-0.5}_source_selector')
+            if previous_source_str != 'None':
+                S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, previous_source_str), False)
+            source_str = S.obs_data_get_string(globalsettings, f'_{self.inning_float}_source_selector')
+            if source_str == 'None':
+                return
+            print(f'{source_str} Activated')
+            S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, source_str), True)
+            
 
 def script_load(settings):
 
@@ -160,15 +89,7 @@ def script_load(settings):
     globalsettings = settings
 
     global inning_source_display
-    inning_source_display = rosterimages()
-
-    global visible_bool
-    visible_bool = S.obs_data_get_bool(settings, '_visible')
-
-    inning_source_display.new_event = 1
-    inning_source_display.dir_scan()
-
-    print(inning_source_display.scene)
+    inning_source_display = SourceDisplay()
 
     global HUD_path
     HUD_path = S.obs_data_get_string(settings, '_path')
@@ -176,8 +97,7 @@ def script_load(settings):
 
 def check_for_updates():
    if pause_bool == False:
-       inning_source_display.dir_scan()
-       inning_source_display.update_images()
+        inning_source_display.dir_scan()
 
 def script_update(settings):
     current_scene = S.obs_frontend_get_current_scene()
@@ -187,53 +107,9 @@ def script_update(settings):
     global pause_bool
     pause_bool = S.obs_data_get_bool(settings, '_pause')
 
-    indicator_bool = S.obs_data_get_bool(settings, '_indicator')
-
-    global visible_bool
-    visible_bool = S.obs_data_get_bool(settings, '_visible')
-    away_indicator_source = S.obs_get_source_by_name(inning_source_display.indicator_image_list[0][0])
-    home_indicator_source = S.obs_get_source_by_name(inning_source_display.indicator_image_list[1][0])
-
-    if indicator_bool == True:
-        S.obs_source_set_enabled(away_indicator_source, False)
-        S.obs_source_set_enabled(home_indicator_source, False)
-    else:
-        S.obs_source_set_enabled(away_indicator_source, True)
-        S.obs_source_set_enabled(home_indicator_source, True)
-
-    S.obs_source_release(away_indicator_source)
-    S.obs_source_release(home_indicator_source)
-
-
-def script_description():
-    return 'Mario Baseball Team HUD Version 1.2a \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
-
-def add_pressed(props, prop):
-    inning_source_display.add_captains()
-    inning_source_display.new_event = 1
-    inning_source_display.dir_scan()
-    inning_source_display.update_images()
-    print(inning_source_display.roster_image_list)
-
-    settings = S.obs_data_create()
-    layout_callback(props, prop, settings)
-    S.obs_data_release(settings)
-
-def refresh_pressed(props, prop):
-    inning_source_display.new_event = 1
-    inning_source_display.dir_scan()
-    inning_source_display.update_images()
-
-#def remove_pressed(props, prop):
-
-
-
 def script_properties():
     props = S.obs_properties_create()
-    #S.obs_properties_add_button(props, 'refreshbutton', 'Refresh HUD', refresh_pressed)
     S.obs_properties_add_bool(props, '_pause', 'Pause')
-    S.obs_properties_add_button(props, '_add_button', 'Add', add_pressed)
-    S.obs_properties_add_button(props, '_removebutton', 'Remove', remove_pressed)
 
     OS_list = S.obs_properties_add_list(props, '_OS_list', 'HUD File Path:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(OS_list, 'Custom', 'custom')
@@ -241,14 +117,49 @@ def script_properties():
     S.obs_property_list_add_string(OS_list, 'MacOS Default Path', 'macOS')
     file_path_input = S.obs_properties_add_text(props, '_path', 'HUD File Path:', S.OBS_TEXT_DEFAULT)
 
-    font_property = S.obs_properties_add_font(props, '_player_font', 'Player Font:')
+    current_scene = S.obs_frontend_get_current_scene()
+    scene = S.obs_scene_from_source(current_scene)
+    S.obs_source_release(current_scene)
 
-    S.obs_properties_add_bool(props, '_indicator', 'Remove Indicators')
+    global halfinning_source_dict
 
-    S.obs_properties_add_bool(props, '_visible', 'Automatically make visible:')
+    halfinning_source_dict = {1.5: None,
+                              2.0: None,
+                              2.5: None,
+                              3.0: None,
+                              3.5: None,
+                              4.0: None,
+                              4.5: None,
+                              5.0: None,
+                              5.5: None,
+                              6.0: None,
+                              6.5: None,
+                              7.0: None,
+                              7.5: None,
+                              8.0: None,
+                              8.5: None,
+                              9.0: None,
+                              9.5: None}
+    
+    source_str_list = ['None']
+    if scene is not None:
+        source_list = S.obs_scene_enum_items(scene)
+
+        # Loop through the scene items and get the source names
+        for scene_item in source_list:
+            source = S.obs_sceneitem_get_source(scene_item)
+            source_name = S.obs_source_get_name(source)
+            source_str_list.append(source_name)
+
+        # Release the scene items
+        S.sceneitem_list_release(source_list)
+
+    for key in halfinning_source_dict.keys():
+        halfinning_source_dict[key] = S.obs_properties_add_list(props, f'_{key}_source_selector', f'Select Inning {key} Source:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+        for source in source_str_list:
+            S.obs_property_list_add_string(halfinning_source_dict[key], source, source)
 
     S.obs_property_set_modified_callback(OS_list, OS_callback)
-    S.obs_property_set_modified_callback(font_property, font_callback)
 
     return props
 
@@ -265,18 +176,5 @@ def OS_callback(props, prop, settings):
         S.obs_property_set_visible(S.obs_properties_get(props, "_path"), False)
     else:
         S.obs_property_set_visible(S.obs_properties_get(props, "_path"), True)
-
-    return True
-
-def font_callback(props, prop, settings):
-    S.obs_data_set_obj(settings, 'font', S.obs_data_get_obj(settings, '_player_font'))
-    source = S.obs_get_source_by_name(inning_source_display.away_player_text_source)
-    S.obs_data_set_bool(settings, 'outline', True)
-    S.obs_source_update(source, settings)
-    S.obs_source_release(source)
-
-    source = S.obs_get_source_by_name(inning_source_display.home_player_text_source)
-    S.obs_source_update(source, settings)
-    S.obs_source_release(source)
 
     return True
