@@ -42,6 +42,9 @@ class hudObj:
     def half_inning(self):
         return self.hud_json['Half Inning']
     
+    def inning_float(self):
+        return float(self.hud_json['Inning'] + 0.5*self.hud_json['Half Inning'])
+    
     def team_roster_str_list(self, teamNum: int):
         self.__errorCheck_teamNum(teamNum)
         team_string = "Away" if teamNum == 0 else "Home"
