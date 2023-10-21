@@ -3,9 +3,10 @@ import os
 import json
 import platform as plt
 import TeamNameAlgo
+import RioHudLib
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 1.3.11 \nOBS interface by MattGree \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nDonations are welcomed!'
+    return 'Mario Baseball Team HUD Version 1.4.0 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
 
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
@@ -200,66 +201,50 @@ class rosterimages:
         with open(hud_file_path) as f:
             hud_data = json.load(f)
 
+        hud_data = RioHudLib.hudObj(hud_data)
+
         # Return if the event hasn't changed
-        if (self.current_event_num == hud_data['Event Num']):
+        if (self.current_event_num == hud_data.event_number):
             if (self.new_event != 1):
                 return self.current_event_num
 
-        if hud_data['Event Num'] == '0a':
+        if hud_data.event_number == '0a':
             return self.current_event_num
 
         global visible_bool
 
-        if visible_bool is True and ((hud_data['Event Num'] == '0b')
+        if visible_bool is True and ((hud_data.event_number == '0b')
                                      or (self.current_event_num == '0b')
-                                     or (int(str(hud_data['Event Num'])[:-1]) < int(str(self.current_event_num)[:-1]))):
+                                     or (hud_data.event_integer() < int(str(self.current_event_num)[:-1]))):
             
-            if (self.away_player == hud_data['Home Player']) and (self.home_player == hud_data['Away Player']):
-                print('flipped')
+            if (self.away_player == hud_data.player(1)) and (self.home_player == hud_data.player(0)):
                 flip_teams('', '')
 
             self.set_visible()
             print("visible")
 
-
-        self.current_event_num = hud_data['Event Num']
-
-        print(hud_data['Event Num'])
-
-        self.halfinning = hud_data['Half Inning']
-
+        self.current_event_num = hud_data.event_number
+        print(hud_data.event_number)
+        self.halfinning = hud_data.half_inning()
         self.new_event = 1
 
-        self.home_player = hud_data['Home Player']
-        self.away_player = hud_data['Away Player']
+        self.away_player = hud_data.player(0)
+        self.home_player = hud_data.player(1)
 
-        # Roster Data
-        for team in range(2):
-            team_string = "Away" if team == 0 else "Home"
-            for roster in range(9):
-                team_roster_str = f'{team_string} Roster {roster}'
-                captain = hud_data[team_roster_str]['Captain']
-                #print(team_roster_str, hud_data[team_roster_str])
-                #print(roster, captain)
-                char_id = hud_data[team_roster_str]['CharID']
-                index = roster + (team * 9)
-                print(index)
-                self.roster_image_list[index][2] = str(char_id)
-                self.roster_image_list[index][1] = 1 if captain == 1 else 0
+        away_roster = hud_data.roster(0)
+        home_roster = hud_data.roster(1)
 
-        for i in range(0,18):
-            if self.roster_image_list[i][1] == 1:
-                if i < 9:
-                    self.away_captain_index = i
-                else:
-                    self.home_captain_index = i
+        for player in away_roster:
+            print(player)
+            self.roster_image_list[player][1] = away_roster[player]['captain']
+            self.roster_image_list[player][2] = away_roster[player]['char_id']
 
+        for player in home_roster:
+            self.roster_image_list[player+9][1] = home_roster[player]['captain']
+            self.roster_image_list[player+9][2] = home_roster[player]['char_id']
 
-        if self.away_captain_index == -1:
-            raise ValueError("Away captain not found:")
-
-        if self.home_captain_index == -1:
-            raise ValueError("Home captain not found:")
+        self.away_captain_index = hud_data.captain_index(0)
+        self.home_captain_index = hud_data.captain_index(1) + 9
         
         self.roster_image_list[self.away_captain_index][1] = 0
         self.roster_image_list[self.home_captain_index-9][1] = 1
