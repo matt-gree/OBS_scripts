@@ -235,7 +235,6 @@ class rosterimages:
         home_roster = hud_data.roster(1)
 
         for player in away_roster:
-            print(player)
             self.roster_image_list[player][1] = away_roster[player]['captain']
             self.roster_image_list[player][2] = away_roster[player]['char_id']
 
@@ -253,9 +252,6 @@ class rosterimages:
 
         self.away_roster = [element[2] for element in self.roster_image_list[:9]]
         self.home_roster = [element[2] for element in self.roster_image_list[9:]]
-
-        print(self.away_roster)
-        print(self.home_roster)
 
         self.logo_image_list[0][1] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[self.home_captain_index-9][2])
         self.logo_image_list[1][1] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[self.away_captain_index+9][2])
