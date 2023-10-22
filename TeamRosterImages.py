@@ -63,14 +63,25 @@ class rosterimages:
         self.home_team_name = ''
 
         self.indicator_image_list = [
-            ['away_indicator', S.vec2()],
-            ['home_indicator', S.vec2()]
+            ['Away Indicator', S.vec2()],
+            ['Home Indicator', S.vec2()]
         ]
 
         self.logo_image_list = [
             ['Away Logo', '', S.vec2()],
             ['Home Logo', '', S.vec2()]
         ]
+
+        self.addons_image_dict = {
+            'Away Indicator': {'Image': 'bat', 'Location': S.vec2(), 'Relative Position': 0,
+                               'Small Scale': 0, 'Large Scale': 0, 'Scale Vector': S.vec2(), 'Group': self.away_group},
+            'Home Indicator': {'Image': 'glove', 'Location': S.vec2(), 'Relative Position': 0,
+                               'Small Scale': 0, 'Large Scale': 0, 'Scale Vector': S.vec2(), 'Group': self.home_group},
+            'Away Logo': {'Image': '', 'Location': S.vec2(), 'Scale Vector': S.vec2(), 'Relative Position': 1,
+                               'Small Scale': 0, 'Large Scale': 0, 'Group': self.away_group},
+            'Home Logo': {'Image': '', 'Location': S.vec2(), 'Relative Position': 1,
+                               'Small Scale': 0, 'Large Scale': 0, 'Scale Vector': S.vec2(), 'Group': self.home_group}
+        }
 
         self.new_event = 0
 
@@ -142,6 +153,7 @@ class rosterimages:
 
         home_group = S.obs_scene_add_group(self.scene, self.home_group)
         away_group = S.obs_scene_add_group(self.scene, self.away_group)
+
         #Home and Away Player Names
         settings = S.obs_data_create()
         if self.platform == 'MacOS':
@@ -161,25 +173,18 @@ class rosterimages:
         S.obs_data_release(settings)
         S.obs_source_release(Away_Captain_Text)
 
-        text_postions = S.vec2()
-        text_postions.x = 500
-        text_postions.y = 500
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.home_player_text_source), text_postions)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.away_player_text_source), text_postions)
+        text_positions = S.vec2()
+        text_positions.x = 500
+        text_positions.y = 500
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.home_player_text_source), text_positions)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.away_player_text_source), text_positions)
 
-        #Batting and Fielding Icons
-        self.add_image_source('bat', 'away_indicator', self.scene)
-        S.obs_sceneitem_group_add_item(away_group, S.obs_scene_find_source(self.scene, 'away_indicator'))
-
-        self.add_image_source('glove', 'home_indicator', self.scene)
-        S.obs_sceneitem_group_add_item(home_group, S.obs_scene_find_source(self.scene, 'home_indicator'))
-
-        #Team Logos
-        self.add_image_source(self.logo_image_list[0][1], 'Away Logo', self.scene)
-        S.obs_sceneitem_group_add_item(away_group, S.obs_scene_find_source(self.scene, 'Away Logo'))
-
-        self.add_image_source(self.logo_image_list[1][1], 'Home Logo', self.scene)
-        S.obs_sceneitem_group_add_item(home_group, S.obs_scene_find_source(self.scene, 'Home Logo'))
+        #Indicators and Logos
+        for key, item in self.addons_image_dict.items():
+            self.add_image_source(item['Image'], key, self.scene)
+            group = S.obs_scene_get_group(self.scene, item['Group'])
+            S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(self.scene, key))
+            S.obs_sceneitem_release(group)
 
         #Team Roster
         for i in range(0,len(self.roster_image_list)):
@@ -253,8 +258,8 @@ class rosterimages:
         self.away_roster = [element[2] for element in self.roster_image_list[:9]]
         self.home_roster = [element[2] for element in self.roster_image_list[9:]]
 
-        self.logo_image_list[0][1] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[self.home_captain_index-9][2])
-        self.logo_image_list[1][1] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[self.away_captain_index+9][2])
+        self.addons_image_dict['Away Logo']['Image'] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[self.home_captain_index-9][2])
+        self.addons_image_dict['Home Logo']['Image'] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[self.away_captain_index+9][2])
 
     def update_images(self):
         if (self.new_event == 0):
@@ -268,10 +273,12 @@ class rosterimages:
             S.obs_data_release(settings)
             S.obs_source_release(source)
 
-        for logo in self.logo_image_list:
-            source = S.obs_get_source_by_name(logo[0])
+        for key, item in self.addons_image_dict.items():
+            if key not in ['Away Logo', 'Home Logo']:
+                continue
+            source = S.obs_get_source_by_name(key)
             settings = S.obs_data_create()
-            S.obs_data_set_string(settings, 'file', str(images_directory) + logo[1] + '.png')
+            S.obs_data_set_string(settings, 'file', str(images_directory) + item['Image'] + '.png')
             S.obs_source_update(source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(source)
@@ -293,27 +300,27 @@ class rosterimages:
         self.new_event = 0
 
         if S.obs_data_get_string(globalsettings, '_roster_layout') == 'horizontal':
-            self.set_position_horizontal()
+            self.set_position_straight('Horizontal')
         if S.obs_data_get_string(globalsettings, '_roster_layout') == 'vertical':
-            self.set_position_vertical()
+            self.set_position_straight('Vertical')
         if S.obs_data_get_string(globalsettings, '_roster_layout') == '2x4':
-            self.set_position_2x4()
+            self.set_position_2x4('Horizontal')
         if S.obs_data_get_string(globalsettings, '_roster_layout') == '2x4vertical':
-            self.set_position_2x4_vertical()
+            self.set_position_2x4('Vertical')
         if S.obs_data_get_string(globalsettings, '_roster_layout') == 'captainshorizontal':
-            self.set_position_captainshorizontal()
+            self.set_position_captains('Horizontal')
         if S.obs_data_get_string(globalsettings, '_roster_layout') == 'captainsvertical':
-            self.set_position_captainsvertical()
+            self.set_position_captains('Vertical')
 
         if self.halfinning == 0:
-            source = S.obs_get_source_by_name('home_indicator')
+            source = S.obs_get_source_by_name('Home Indicator')
             settings = S.obs_data_create()
             S.obs_data_set_string(settings, 'file', str(images_directory) + str('glove') + '.png')
             S.obs_source_update(source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(source)
 
-            source = S.obs_get_source_by_name('away_indicator')
+            source = S.obs_get_source_by_name('Away Indicator')
             settings = S.obs_data_create()
             S.obs_data_set_string(settings, 'file', str(images_directory) + str('bat') + '.png')
             S.obs_source_update(source, settings)
@@ -321,14 +328,14 @@ class rosterimages:
             S.obs_source_release(source)
 
         elif self.halfinning == 1:
-            source = S.obs_get_source_by_name('home_indicator')
+            source = S.obs_get_source_by_name('Home Indicator')
             settings = S.obs_data_create()
             S.obs_data_set_string(settings, 'file', str(images_directory) + str('bat') + '.png')
             S.obs_source_update(source, settings)
             S.obs_data_release(settings)
             S.obs_source_release(source)
 
-            source = S.obs_get_source_by_name('away_indicator')
+            source = S.obs_get_source_by_name('Away Indicator')
             settings = S.obs_data_create()
             S.obs_data_set_string(settings, 'file', str(images_directory) + str('glove') + '.png')
             S.obs_source_update(source, settings)
@@ -336,25 +343,12 @@ class rosterimages:
             S.obs_source_release(source)
 
     def indicator_scale(self, size):
-        if size == 'small':
-            self.away_indicator_scale.x = self.away_indicator_scale_multiplier_small
-            self.away_indicator_scale.y = self.away_indicator_scale_multiplier_small
-            S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, 'away_indicator'), self.away_indicator_scale)
+        for key, item in self.addons_image_dict.items():
+            item['Scale Vector'].x = item[f'{size} Scale']
+            item['Scale Vector'].y = item[f'{size} Scale']
+            S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, key), item['Scale Vector'])
 
-            self.home_indicator_scale.x = self.home_indicator_scale_multiplier_small
-            self.home_indicator_scale.y = self.home_indicator_scale_multiplier_small
-            S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, 'home_indicator'), self.home_indicator_scale)
-
-        elif size == 'large':
-            self.away_indicator_scale.x = self.away_indicator_scale_multiplier_large
-            self.away_indicator_scale.y = self.away_indicator_scale_multiplier_large
-            S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, 'away_indicator'), self.away_indicator_scale)
-
-            self.home_indicator_scale.x = self.home_indicator_scale_multiplier_large
-            self.home_indicator_scale.y = self.home_indicator_scale_multiplier_large
-            S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, 'home_indicator'), self.home_indicator_scale)
-
-    def pre_postion_update(self):
+    def pre_position_update(self):
         current_scene = S.obs_frontend_get_current_scene()
         self.scene = S.obs_scene_from_source(current_scene)
         S.obs_source_release(current_scene)
@@ -376,32 +370,22 @@ class rosterimages:
 
         S.obs_source_release(home_roster_8)
 
+        # away_indicator = S.obs_get_source_by_name('Away Indicator')
+        # home_indicator = S.obs_get_source_by_name('Home Indicator')
+        # if away_indicator:
+        #     S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.away_player_text_source), self.indicator_image_list[0][1])
+        # if home_indicator:
+        #     S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.home_player_text_source), self.indicator_image_list[1][1])
 
-        away_indicator = S.obs_get_source_by_name('away_indicator')
-        home_indicator = S.obs_get_source_by_name('home_indicator')
-
-        if away_indicator:
-            S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.away_player_text_source), self.indicator_image_list[0][1])
-        if home_indicator:
-            S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.home_player_text_source), self.indicator_image_list[1][1])
-
-        #Batting and Fielding Icon Scale
-        if S.obs_source_get_width(away_indicator) == 0:
-            self.away_indicator_scale_multiplier_small = 0
-            self.away_indicator_scale_multiplier_large = 0
-        else:
-            self.away_indicator_scale_multiplier_small = (self.image_width)/S.obs_source_get_width(away_indicator)
-            self.away_indicator_scale_multiplier_large = self.away_indicator_scale_multiplier_small * self.captain_size_multiplier
-
-        if S.obs_source_get_width(home_indicator) == 0:
-            self.home_indicator_scale_multiplier_small = 0
-            self.home_indicator_scale_multiplier_large = 0
-        else:
-            self.home_indicator_scale_multiplier_small = (self.image_width) / S.obs_source_get_width(home_indicator)
-            self.home_indicator_scale_multiplier_large = self.home_indicator_scale_multiplier_small * self.captain_size_multiplier
-
-        S.obs_source_release(away_indicator)
-        S.obs_source_release(home_indicator)
+        for key, item in self.addons_image_dict.items():
+            source = S.obs_get_source_by_name(key)
+            if S.obs_source_get_width(source) == 0:
+                item['Small Scale'] = 0
+                item['Large Scale'] = 0
+            else:
+                item['Small Scale'] = (self.image_width)/S.obs_source_get_width(source)
+                item['Large Scale'] = item['Small Scale'] * self.captain_size_multiplier
+            S.obs_source_release(source)
 
     def alignment(self, source_name, align_int):
         # align_int = 4 for center top, 8 for center bottom, = 9 for bottom left
@@ -413,35 +397,9 @@ class rosterimages:
         S.obs_sceneitem_set_info(scene_item, info)
         S.obs_source_release(source)
 
-    def set_position_horizontal(self):
+    def set_position_straight(self, direction):
         self.enable_roster_images()
-        self.pre_postion_update()
-
-        for i in range(0, len(self.roster_image_list)):
-            scale = S.vec2()
-            scale.x = 1
-            scale.y = 1
-            S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]),
-                                      scale)
-            S.vec2_zero(self.roster_image_list[i][3])
-            self.roster_image_list[i][3].x = i * self.image_width
-            if i > 8:
-                self.roster_image_list[i][3].x = (i-9) * self.image_width
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), self.roster_image_list[i][3])
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.home_group), self.home_roster_loc)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.away_group), self.away_roster_loc)
-
-        # Set indicator location and scale
-        for i in range(0,len(self.indicator_image_list)):
-            S.vec2_zero(self.indicator_image_list[i][1])
-            self.indicator_image_list[i][1].x = 9 * self.image_width
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.indicator_image_list[i][0]), self.indicator_image_list[i][1])
-
-        self.indicator_scale('small')
-
-    def set_position_vertical(self):
-        self.enable_roster_images()
-        self.pre_postion_update()
+        self.pre_position_update()
 
         for i in range(0, len(self.roster_image_list)):
             scale = S.vec2()
@@ -449,25 +407,37 @@ class rosterimages:
             scale.y = 1
             S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), scale)
             S.vec2_zero(self.roster_image_list[i][3])
-            self.roster_image_list[i][3].y = i * self.image_width
-            if i > 8:
-                self.roster_image_list[i][3].y = (i-9) * self.image_width
+            if direction == 'Horizontal':
+                self.roster_image_list[i][3].x = i * self.image_width
+                if i > 8:
+                    self.roster_image_list[i][3].x = (i-9) * self.image_width
+            elif direction == 'Vertical':
+                self.roster_image_list[i][3].y = i * self.image_width
+                if i > 8:
+                    self.roster_image_list[i][3].y = (i-9) * self.image_width
+            
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), self.roster_image_list[i][3])
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.home_group), self.home_roster_loc)
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.away_group), self.away_roster_loc)
+        
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.home_group), self.home_roster_loc)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.away_group), self.away_roster_loc)
 
         # Set indicator location and scale
-        for i in range(0,len(self.indicator_image_list)):
-            S.vec2_zero(self.indicator_image_list[i][1])
-            self.indicator_image_list[i][1].y = 9 * self.image_width
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.indicator_image_list[i][0]), self.indicator_image_list[i][1])
+        for key, item in self.addons_image_dict.items():
+            S.vec2_zero(item['Location'])
+            if direction == 'Horizontal':
+                item['Location'].x = (9+item['Relative Position']) * self.image_width
+            if direction == 'Vertical':
+                item['Location'].y = (9+item['Relative Position']) * self.image_width
 
-        self.indicator_scale('small')
+            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, key), item['Location'])
 
-    def set_position_2x4(self):
+        self.indicator_scale('Small')
+
+    def set_position_2x4(self, direction):
         self.enable_roster_images()
-        self.pre_postion_update()
+        self.pre_position_update()
         counter = 0
+
         for i in range(0,len(self.roster_image_list)):
             S.vec2_zero(self.roster_image_list[i][3])
             if self.roster_image_list[i][1] == 1:
@@ -475,23 +445,36 @@ class rosterimages:
                 scale.x = self.captain_size_multiplier
                 scale.y = self.captain_size_multiplier
                 S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), scale)
-                if i < 8:
-                    self.roster_image_list[i][3].y = 0.2 * self.image_width
-                else:
-                    self.roster_image_list[i][3].y = 0.2 * self.image_width
+                if direction == 'Horizontal':
+                    if i < 8:
+                        self.roster_image_list[i][3].y = 0.2 * self.image_width
+                    else:
+                        self.roster_image_list[i][3].y = 0.2 * self.image_width
+
+                elif direction == 'Vertical':
+                    if i < 8:
+                        self.roster_image_list[i][3].x = 0.2 * self.image_width
+                    else:
+                        self.roster_image_list[i][3].x = 0.2 * self.image_width
             else:
                 scale = S.vec2()
                 scale.x = 1
                 scale.y = 1
-                S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]),
-                                          scale)
-                if counter%8 < 4:
-                    self.roster_image_list[i][3].x = counter%4 * self.image_width + self.captain_size_multiplier *self.image_width
-                    counter +=1
-                else:
-                    self.roster_image_list[i][3].x = counter%4 * self.image_width + self.captain_size_multiplier *self.image_width
-                    self.roster_image_list[i][3].y = self.image_width
-                    counter += 1
+                S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), scale)
+                if direction == 'Horizontal':
+                    if counter%8 < 4:
+                        self.roster_image_list[i][3].x = counter%4 * self.image_width + self.captain_size_multiplier *self.image_width
+                    else:
+                        self.roster_image_list[i][3].x = counter%4 * self.image_width + self.captain_size_multiplier *self.image_width
+                        self.roster_image_list[i][3].y = self.image_width
+                elif direction == 'Vertical':
+                    if counter%8 < 4:
+                        self.roster_image_list[i][3].y = counter%4 * self.image_width + self.captain_size_multiplier *self.image_width
+                    else:
+                        self.roster_image_list[i][3].y = counter%4 * self.image_width + self.captain_size_multiplier *self.image_width
+                        self.roster_image_list[i][3].x = self.image_width
+                counter += 1
+
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]),
                                     self.roster_image_list[i][3])
 
@@ -499,64 +482,22 @@ class rosterimages:
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.away_group), self.away_roster_loc)
 
         # Set indicator location and scale
-        for i in range(0,len(self.indicator_image_list)):
-            S.vec2_zero(self.indicator_image_list[i][1])
-            self.indicator_image_list[i][1].x = 4 * self.image_width + self.captain_size_multiplier * self.image_width
-            source = S.obs_get_source_by_name(self.indicator_image_list[i][0])
-            self.indicator_image_list[i][1].y = (2 * self.image_width - (S.obs_source_get_width(source))*self.away_indicator_scale_multiplier_large)/2
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.indicator_image_list[i][0]), self.indicator_image_list[i][1])
+        for key, item in self.addons_image_dict.items():
+            S.vec2_zero(item['Location'])
+            source = S.obs_get_source_by_name(key)
+            if direction == 'Horizontal':
+                item['Location'].x = 4 * self.image_width + (self.captain_size_multiplier * self.image_width)*(1+item['Relative Position'])
+                item['Location'].y = (2 * self.image_width - (S.obs_source_get_width(source)) * item['Large Scale'])/2
+            elif direction == 'Vertical':
+                item['Location'].y = 4 * self.image_width + (self.captain_size_multiplier * self.image_width)*(1+item['Relative Position'])
+                item['Location'].x = (2 * self.image_width - (S.obs_source_get_width(source)) * item['Large Scale'])/2
+            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, key), item['Location'])
             S.obs_source_release(source)
-        self.indicator_scale('large')
+        self.indicator_scale('Large')
 
-    def set_position_2x4_vertical(self):
-        self.enable_roster_images()
-        self.pre_postion_update()
-        counter = 0
-        for i in range(0,len(self.roster_image_list)):
-            S.vec2_zero(self.roster_image_list[i][3])
-            if self.roster_image_list[i][1] == 1:
-                print(self.roster_image_list[i][2])
-                scale = S.vec2()
-                scale.x = self.captain_size_multiplier
-                scale.y = self.captain_size_multiplier
-                S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]), scale)
-                if i < 8:
-                    self.roster_image_list[i][3].x = 0.2 * self.image_width
-                else:
-                    self.roster_image_list[i][3].x = 0.2 * self.image_width
-            else:
-                scale = S.vec2()
-                scale.x = 1
-                scale.y = 1
-                S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]),
-                                          scale)
-                if counter%8 < 4:
-                    self.roster_image_list[i][3].y = counter%4 * self.image_width + self.captain_size_multiplier *self.image_width
-                    counter +=1
-                else:
-                    self.roster_image_list[i][3].y = counter%4 * self.image_width + self.captain_size_multiplier *self.image_width
-                    self.roster_image_list[i][3].x = self.image_width
-                    counter += 1
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]),
-                                    self.roster_image_list[i][3])
-
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.home_group), self.home_roster_loc)
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.away_group), self.away_roster_loc)
-
-        #Set indicator location and scale
-        for i in range(0,len(self.indicator_image_list)):
-            S.vec2_zero(self.indicator_image_list[i][1])
-            self.indicator_image_list[i][1].y = 4 * self.image_width + self.captain_size_multiplier * self.image_width
-            source = S.obs_get_source_by_name(self.indicator_image_list[i][0])
-            self.indicator_image_list[i][1].x = (2 * self.image_width - (S.obs_source_get_width(source))*self.away_indicator_scale_multiplier_large)/2
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.indicator_image_list[i][0]), self.indicator_image_list[i][1])
-            S.obs_source_release(source)
-
-        self.indicator_scale('large')
-
-    def set_position_captainshorizontal(self):
-        self.pre_postion_update()
-        self.set_position_2x4()
+    def set_position_captains(self, direction):
+        self.pre_position_update()
+        self.set_position_2x4(direction)
         for i in range(0, len(self.roster_image_list)):
             S.vec2_zero(self.roster_image_list[i][3])
             if self.roster_image_list[i][1] == 1:
@@ -565,56 +506,36 @@ class rosterimages:
                 scale.y = self.captain_size_multiplier
                 S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]),
                                           scale)
-                if i < 8:
-                    self.roster_image_list[i][3].y = 0.2 * self.image_width
-                else:
-                    self.roster_image_list[i][3].y = 0.2 * self.image_width
+                if direction == 'Horizontal':
+                    if i < 8:
+                        self.roster_image_list[i][3].y = 0.2 * self.image_width
+                    else:
+                        self.roster_image_list[i][3].y = 0.2 * self.image_width
+                elif direction == 'Vertical':
+                    if i < 8:
+                        self.roster_image_list[i][3].y = 0.2 * self.image_width
+                    else:
+                        self.roster_image_list[i][3].y = 0.2 * self.image_width
             else:
                 source = S.obs_get_source_by_name(self.roster_image_list[i][0])
                 S.obs_source_set_enabled(source, False)
                 S.obs_source_release(source)
 
         # Set indicator location and scale
-        for i in range(0,len(self.indicator_image_list)):
-            S.vec2_zero(self.indicator_image_list[i][1])
-            self.indicator_image_list[i][1].x = self.captain_size_multiplier * self.image_width
-            source = S.obs_get_source_by_name(self.indicator_image_list[i][0])
-            self.indicator_image_list[i][1].y = (2 * self.image_width - (S.obs_source_get_width(source))*self.away_indicator_scale_multiplier_large)/2
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.indicator_image_list[i][0]), self.indicator_image_list[i][1])
+        for key, item in self.addons_image_dict.items():
+            S.vec2_zero(item['Location'])
+            source = S.obs_get_source_by_name(key)
+            if direction == 'Horizontal':
+                item['Location'].x = (self.captain_size_multiplier * self.image_width)*(1 + item['Relative Position'])
+                item['Location'].y = (2 * self.image_width - (S.obs_source_get_width(source) * item['Large Scale']))/2
+            elif direction == 'Vertical':
+                item['Location'].y = (self.captain_size_multiplier * self.image_width)*(1 + item['Relative Position'])
+                item['Location'].x = (2 * self.image_width - (S.obs_source_get_width(source) * item['Large Scale']))/2
+            
+            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, key), item['Location'])
             S.obs_source_release(source)
 
-        self.indicator_scale('large')
-
-    def set_position_captainsvertical(self):
-        self.pre_postion_update()
-        self.set_position_2x4_vertical()
-        for i in range(0, len(self.roster_image_list)):
-            S.vec2_zero(self.roster_image_list[i][3])
-            if self.roster_image_list[i][1] == 1:
-                scale = S.vec2()
-                scale.x = self.captain_size_multiplier
-                scale.y = self.captain_size_multiplier
-                S.obs_sceneitem_set_scale(S.obs_scene_find_source_recursive(self.scene, self.roster_image_list[i][0]),
-                                          scale)
-                if i < 8:
-                    self.roster_image_list[i][3].y = 0.2 * self.image_width
-                else:
-                    self.roster_image_list[i][3].y = 0.2 * self.image_width
-            else:
-                source = S.obs_get_source_by_name(self.roster_image_list[i][0])
-                S.obs_source_set_enabled(source, False)
-                S.obs_source_release(source)
-
-        # Set indicator location and scale
-        for i in range(0,len(self.indicator_image_list)):
-            S.vec2_zero(self.indicator_image_list[i][1])
-            self.indicator_image_list[i][1].y = self.captain_size_multiplier * self.image_width
-            source = S.obs_get_source_by_name(self.indicator_image_list[i][0])
-            self.indicator_image_list[i][1].x = (2 * self.image_width - (S.obs_source_get_width(source))*self.away_indicator_scale_multiplier_large)/2
-            S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.indicator_image_list[i][0]), self.indicator_image_list[i][1])
-            S.obs_source_release(source)
-
-        self.indicator_scale('large')
+        self.indicator_scale('Large')
 
 def script_load(settings):
 
@@ -782,22 +703,22 @@ def OS_callback(props, prop, settings):
 def layout_callback(props, prop, settings):
     if S.obs_data_get_string(settings, '_roster_layout') == 'horizontal':
         left_text_allignment(props, prop)
-        getimage.set_position_horizontal()
+        getimage.set_position_straight('Horizontal')
     if S.obs_data_get_string(settings, '_roster_layout') == 'vertical':
         center_text_allignment(props, prop)
-        getimage.set_position_vertical()
+        getimage.set_position_straight('Vertical')
     if S.obs_data_get_string(settings, '_roster_layout') == '2x4':
         left_text_allignment(props, prop)
-        getimage.set_position_2x4()
+        getimage.set_position_2x4('Horizontal')
     if S.obs_data_get_string(settings, '_roster_layout') == '2x4vertical':
         center_text_allignment(props, prop)
-        getimage.set_position_2x4_vertical()
+        getimage.set_position_2x4('Vertical')
     if S.obs_data_get_string(settings, '_roster_layout') == 'captainshorizontal':
         left_text_allignment(props, prop)
-        getimage.set_position_captainshorizontal()
+        getimage.set_position_captains('Horizontal')
     if S.obs_data_get_string(settings, '_roster_layout') == 'captainsvertical':
         center_text_allignment(props, prop)
-        getimage.set_position_captainsvertical()
+        getimage.set_position_captains('Vertical')
     return True
 
 def font_callback(props, prop, settings):
