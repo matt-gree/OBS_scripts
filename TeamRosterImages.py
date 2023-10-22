@@ -184,7 +184,6 @@ class rosterimages:
             self.add_image_source(item['Image'], key, self.scene)
             group = S.obs_scene_get_group(self.scene, item['Group'])
             S.obs_sceneitem_group_add_item(group, S.obs_scene_find_source(self.scene, key))
-            S.obs_sceneitem_release(group)
 
         #Team Roster
         for i in range(0,len(self.roster_image_list)):
