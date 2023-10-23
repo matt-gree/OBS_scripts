@@ -119,7 +119,6 @@ In_Game_Team_Names = {
 
 
 def Team_Name(roster, captain):
-    print(roster)
     if '' in roster:
         return ''
     
@@ -150,8 +149,6 @@ def Team_Name(roster, captain):
                     'Speed': class_roster.count('Speed'),
                     'Power': class_roster.count('Power')}
     
-    print(class_count_dict)
-
     captain_class = char_class_dict[captain]['Class']
 
     class_list = ['Balance', 'Technique', 'Speed', 'Power']
