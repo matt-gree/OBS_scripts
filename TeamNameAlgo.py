@@ -72,8 +72,8 @@ In_Game_Team_Names = {
                 {'Name': 'Peach Princesses', 'Characters':['Mario', 'Bowser', 'Baby Mario', 'Bowser Jr']}],
 
         'Daisy':[{'Name': 'Daisy Lillies'},
-                {'Name': 'Dasiy Cupids'},
-                {'Name': 'Dasiy Queen Bees', 'Characters':['Peach', 'Dixie Kong', 'Toadette', 'Noki']},
+                {'Name': 'Daisy Cupids'},
+                {'Name': 'Daisy Queen Bees', 'Characters':['Peach', 'Dixie Kong', 'Toadette', 'Noki']},
                 {'Name': 'Daisy Petals', 'Characters':['Birdo', 'Dixie Kong', 'Wario', 'Petey']}], 
 
         'Yoshi':[{'Name': 'Yoshi Eggs'},
