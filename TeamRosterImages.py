@@ -6,7 +6,7 @@ import TeamNameAlgo
 import RioHudLib
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 1.4.0 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
+    return 'Mario Baseball Team HUD Version 1.5 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
 
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
