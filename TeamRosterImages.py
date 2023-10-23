@@ -62,15 +62,8 @@ class rosterimages:
         self.away_team_name = ''
         self.home_team_name = ''
 
-        self.indicator_image_list = [
-            ['Away Indicator', S.vec2()],
-            ['Home Indicator', S.vec2()]
-        ]
-
-        self.logo_image_list = [
-            ['Away Logo', '', S.vec2()],
-            ['Home Logo', '', S.vec2()]
-        ]
+        self.home_player = ''
+        self.away_player = ''
 
         self.addons_image_dict = {
             'Away Indicator': {'Image': 'bat', 'Location': S.vec2(), 'Relative Position': 0,
@@ -85,6 +78,8 @@ class rosterimages:
 
         self.new_event = 0
 
+        self.inning_end = False
+
         self.home_roster_loc = S.vec2()
         self.away_roster_loc = S.vec2()
 
@@ -93,18 +88,6 @@ class rosterimages:
 
         self.image_width = 60
         self.captain_size_multiplier = 1.6
-
-        self.away_indicator_scale = S.vec2()
-        self.home_indicator_scale = S.vec2()
-
-        self.away_indicator_scale_multiplier_small = 0
-        self.home_indicator_scale_multiplier_small = 0
-
-        self.away_indicator_scale_multiplier_large = 0
-        self.home_indicator_scale_multiplier_large = 0
-
-        self.home_player = ''
-        self.away_player = ''
 
         if str(plt.platform()).lower()[0] == 'm':
             self.platform = 'MacOS'
@@ -146,7 +129,7 @@ class rosterimages:
         S.obs_data_release(settings)
         S.obs_source_release(source)
 
-    def add_captains(self):
+    def add_rosters(self):
         current_scene = S.obs_frontend_get_current_scene()
         self.scene = S.obs_scene_from_source(current_scene)
         S.obs_source_release(current_scene)
@@ -200,20 +183,21 @@ class rosterimages:
         hud_file_path = hud_file_path.replace("\\", "/")
 
         if not os.path.isfile(hud_file_path):
-            return ''
+            return False
 
         with open(hud_file_path) as f:
             hud_data = json.load(f)
 
         hud_data = RioHudLib.hudObj(hud_data)
+        self.inning_end = hud_data.inning_end()
 
         # Return if the event hasn't changed
         if (self.current_event_num == hud_data.event_number):
             if (self.new_event != 1):
-                return self.current_event_num
+                return False
 
         if hud_data.event_number == '0a':
-            return self.current_event_num
+            return False
 
         global visible_bool
 
@@ -259,6 +243,8 @@ class rosterimages:
 
         self.addons_image_dict['Away Logo']['Image'] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[self.home_captain_index-9][2])
         self.addons_image_dict['Home Logo']['Image'] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[self.away_captain_index+9][2])
+
+        return True
 
     def update_images(self):
         if (self.new_event == 0):
@@ -310,36 +296,30 @@ class rosterimages:
             self.set_position_captains('Horizontal')
         if S.obs_data_get_string(globalsettings, '_roster_layout') == 'captainsvertical':
             self.set_position_captains('Vertical')
+        
+        def update_indicators(source_name, image):
+            source = S.obs_get_source_by_name(source_name)
+            settings = S.obs_data_create()
+            S.obs_data_set_string(settings, 'file', str(images_directory) + image + '.png')
+            S.obs_source_update(source, settings)
+            S.obs_data_release(settings)
+            S.obs_source_release(source)
 
         if self.halfinning == 0:
-            source = S.obs_get_source_by_name('Home Indicator')
-            settings = S.obs_data_create()
-            S.obs_data_set_string(settings, 'file', str(images_directory) + str('glove') + '.png')
-            S.obs_source_update(source, settings)
-            S.obs_data_release(settings)
-            S.obs_source_release(source)
+            update_indicators('Home Indicator', 'glove')
+            update_indicators('Away Indicator', 'bat')
+        else:
+            update_indicators('Home Indicator', 'bat')
+            update_indicators('Away Indicator', 'glove')
 
-            source = S.obs_get_source_by_name('Away Indicator')
-            settings = S.obs_data_create()
-            S.obs_data_set_string(settings, 'file', str(images_directory) + str('bat') + '.png')
-            S.obs_source_update(source, settings)
-            S.obs_data_release(settings)
-            S.obs_source_release(source)
-
-        elif self.halfinning == 1:
-            source = S.obs_get_source_by_name('Home Indicator')
-            settings = S.obs_data_create()
-            S.obs_data_set_string(settings, 'file', str(images_directory) + str('bat') + '.png')
-            S.obs_source_update(source, settings)
-            S.obs_data_release(settings)
-            S.obs_source_release(source)
-
-            source = S.obs_get_source_by_name('Away Indicator')
-            settings = S.obs_data_create()
-            S.obs_data_set_string(settings, 'file', str(images_directory) + str('glove') + '.png')
-            S.obs_source_update(source, settings)
-            S.obs_data_release(settings)
-            S.obs_source_release(source)
+        if self.inning_end:
+            print(self.inning_end)
+            if self.halfinning == 0:
+                update_indicators('Home Indicator', 'bat')
+                update_indicators('Away Indicator', 'glove')
+            else:
+                update_indicators('Home Indicator', 'glove')
+                update_indicators('Away Indicator', 'bat')
 
     def indicator_scale(self, size):
         for key, item in self.addons_image_dict.items():
@@ -368,13 +348,6 @@ class rosterimages:
             S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, self.away_group), self.away_roster_loc)
 
         S.obs_source_release(home_roster_8)
-
-        # away_indicator = S.obs_get_source_by_name('Away Indicator')
-        # home_indicator = S.obs_get_source_by_name('Home Indicator')
-        # if away_indicator:
-        #     S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.away_player_text_source), self.indicator_image_list[0][1])
-        # if home_indicator:
-        #     S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, self.home_player_text_source), self.indicator_image_list[1][1])
 
         for key, item in self.addons_image_dict.items():
             source = S.obs_get_source_by_name(key)
@@ -560,8 +533,9 @@ def script_load(settings):
 
 def check_for_updates():
    if pause_bool == False:
-       getimage.dir_scan()
-       getimage.update_images()
+        update = getimage.dir_scan()
+        if update:
+            getimage.update_images()
 
 def script_update(settings):
     current_scene = S.obs_frontend_get_current_scene()
@@ -575,8 +549,8 @@ def script_update(settings):
 
     global visible_bool
     visible_bool = S.obs_data_get_bool(settings, '_visible')
-    away_indicator_source = S.obs_get_source_by_name(getimage.indicator_image_list[0][0])
-    home_indicator_source = S.obs_get_source_by_name(getimage.indicator_image_list[1][0])
+    away_indicator_source = S.obs_get_source_by_name('Away Indicator')
+    home_indicator_source = S.obs_get_source_by_name('Home Indicator')
 
     if indicator_bool == True:
         S.obs_source_set_enabled(away_indicator_source, False)
@@ -589,7 +563,7 @@ def script_update(settings):
     S.obs_source_release(home_indicator_source)
 
 def add_pressed(props, prop):
-    getimage.add_captains()
+    getimage.add_rosters()
     getimage.new_event = 1
     getimage.dir_scan()
     getimage.update_images()
