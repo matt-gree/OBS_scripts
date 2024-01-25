@@ -166,14 +166,14 @@ class pitcherstats:
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_combined_stats_text"), self.batting_stats_loc)
 
         #flip web stats
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_batter_stats_text"), self.web_pitching_stats_loc)
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_pitcher_stats_text"), self.web_batting_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_summary_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_summary_stats_text"), self.web_batting_stats_loc)
 
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "web_pitcher_stats_text"), self.web_pitching_stats_loc)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "web_batter_stats_text"), self.web_batting_stats_loc)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_summary_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "batter_summary_stats_text"), self.web_batting_stats_loc)
 
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_pitcher_stats_text"), self.web_pitching_stats_loc)
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "web_batter_stats_text"), self.web_batting_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_summary_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_summary_stats_text"), self.web_batting_stats_loc)
 
     def add_pitching_stats(self):
         current_scene = S.obs_frontend_get_current_scene()
@@ -427,8 +427,8 @@ class pitcherstats:
         self.away_player = hud_data["Away Player"]
 
         global visible_bool
-
-        print(f"game start bool {self.game_start}")
+        if self.debugMode:
+            print(f"game start bool {self.game_start}")
 
         if (visible_bool is True) and (self.current_event_num[0] != '0') and (self.game_start == True):
             S.timer_remove(check_for_updates)
@@ -840,13 +840,13 @@ def script_properties():
 
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
-
-    S.obs_property_list_add_string(web_mode_list, 'Stars Off Season7', 'StarsOffSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'Stars Off Season 7', 'StarsOffSeason7')
     S.obs_property_list_add_string(web_mode_list, 'Stars On Season 7', 'StarsOnHazardousSeason7')
     S.obs_property_list_add_string(web_mode_list, 'Big Balla Season 7', 'BigBallaRandomsSeason7')
     S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Season 7', 'StarsOffHazardousSeason7')
     S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Randoms Season 7', 'StarsOffHazardousRandomsSeason7')
-    S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Season 7', 'StarsOffMegaSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'Stars Off Mega 7', 'StarsOffMegaSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'NNL Season 5', 'NNLSeason5')
     # for i in range(len(getstats.mode_names)):
     # S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
 
