@@ -833,10 +833,10 @@ def script_properties():
     
 
     #if the list of modes was already fetched, don't do it again.
-    global getstats
-    if getstats.got_modes == False:
-        getstats.get_active_modes()
-        getstats.got_modes = True
+    # global getstats
+    # if getstats.got_modes == False:
+        # getstats.get_active_modes()
+        # getstats.got_modes = True
 
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
