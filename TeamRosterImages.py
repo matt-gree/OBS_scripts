@@ -3,6 +3,8 @@ import os
 import json
 import platform as plt
 import TeamNameAlgo
+import requests
+import time
 import RioHudLib
 
 def script_description():
@@ -66,10 +68,6 @@ class rosterimages:
         self.away_player = ''
 
         self.addons_image_dict = {
-            'Away Indicator': {'Image': 'bat', 'Location': S.vec2(), 'Relative Position': 0,
-                               'Small Scale': 0, 'Large Scale': 0, 'Scale Vector': S.vec2(), 'Group': self.away_group},
-            'Home Indicator': {'Image': 'glove', 'Location': S.vec2(), 'Relative Position': 0,
-                               'Small Scale': 0, 'Large Scale': 0, 'Scale Vector': S.vec2(), 'Group': self.home_group},
             'Away Logo': {'Image': '', 'Location': S.vec2(), 'Scale Vector': S.vec2(), 'Relative Position': 1,
                                'Small Scale': 0, 'Large Scale': 0, 'Group': self.away_group},
             'Home Logo': {'Image': '', 'Location': S.vec2(), 'Relative Position': 1,
@@ -101,8 +99,6 @@ class rosterimages:
                 2] + '/Documents/Project Rio/HudFiles/decoded.hud.json' '''
         else:
             self.platform = 'Unknown'
-
-        self.indicator_images_exist = True
 
     #Used when reverting from the captains only layout
     def enable_roster_images(self):
@@ -178,44 +174,7 @@ class rosterimages:
                 S.obs_sceneitem_group_add_item(home_group,
                                                S.obs_scene_find_source(self.scene, self.roster_image_list[i][0]))
 
-    def dir_scan(self):
-        hud_file_path = S.obs_data_get_string(globalsettings, '_path')
-        hud_file_path = hud_file_path.replace("\\", "/")
-
-        if not os.path.isfile(hud_file_path):
-            return False
-
-        with open(hud_file_path) as f:
-            hud_data = json.load(f)
-
-        hud_data = RioHudLib.hudObj(hud_data)
-        self.inning_end = hud_data.inning_end()
-
-        # Return if the event hasn't changed
-        if (self.current_event_num == hud_data.event_number):
-            if (self.new_event != 1):
-                return False
-
-        if hud_data.event_number == '0a':
-            return False
-
-        global visible_bool
-
-        if visible_bool is True and ((hud_data.event_number == '0b')
-                                     or (self.current_event_num == '0b')
-                                     or (hud_data.event_integer() < int(str(self.current_event_num)[:-1]))):
-            
-            if (self.away_player == hud_data.player(1)) and (self.home_player == hud_data.player(0)):
-                flip_teams('', '')
-
-            self.set_visible()
-            print("visible")
-
-        self.current_event_num = hud_data.event_number
-        print(hud_data.event_number)
-        self.halfinning = hud_data.half_inning()
-        self.new_event = 1
-
+    def get_team_rosters_from_RW(self):
         self.away_player = hud_data.player(0)
         self.home_player = hud_data.player(1)
 
@@ -296,30 +255,6 @@ class rosterimages:
             self.set_position_captains('Horizontal')
         if S.obs_data_get_string(globalsettings, '_roster_layout') == 'captainsvertical':
             self.set_position_captains('Vertical')
-        
-        def update_indicators(source_name, image):
-            source = S.obs_get_source_by_name(source_name)
-            settings = S.obs_data_create()
-            S.obs_data_set_string(settings, 'file', str(images_directory) + image + '.png')
-            S.obs_source_update(source, settings)
-            S.obs_data_release(settings)
-            S.obs_source_release(source)
-
-        if self.halfinning == 0:
-            update_indicators('Home Indicator', 'glove')
-            update_indicators('Away Indicator', 'bat')
-        else:
-            update_indicators('Home Indicator', 'bat')
-            update_indicators('Away Indicator', 'glove')
-
-        if self.inning_end:
-            print(self.inning_end)
-            if self.halfinning == 0:
-                update_indicators('Home Indicator', 'bat')
-                update_indicators('Away Indicator', 'glove')
-            else:
-                update_indicators('Home Indicator', 'glove')
-                update_indicators('Away Indicator', 'bat')
 
     def indicator_scale(self, size):
         for key, item in self.addons_image_dict.items():
@@ -510,9 +445,6 @@ class rosterimages:
         self.indicator_scale('Large')
 
 def script_load(settings):
-
-    S.timer_add(check_for_updates, 1000)
-
     global globalsettings
     globalsettings = settings
 
@@ -531,36 +463,11 @@ def script_load(settings):
     HUD_path = S.obs_data_get_string(settings, '_path')
 
 
-def check_for_updates():
-   if pause_bool == False:
-        update = getimage.dir_scan()
-        if update:
-            getimage.update_images()
-
 def script_update(settings):
     current_scene = S.obs_frontend_get_current_scene()
     getimage.scene = S.obs_scene_from_source(current_scene)
     S.obs_source_release(current_scene)
 
-    global pause_bool
-    pause_bool = S.obs_data_get_bool(settings, '_pause')
-
-    indicator_bool = S.obs_data_get_bool(settings, '_indicator')
-
-    global visible_bool
-    visible_bool = S.obs_data_get_bool(settings, '_visible')
-    away_indicator_source = S.obs_get_source_by_name('Away Indicator')
-    home_indicator_source = S.obs_get_source_by_name('Home Indicator')
-
-    if indicator_bool == True:
-        S.obs_source_set_enabled(away_indicator_source, False)
-        S.obs_source_set_enabled(home_indicator_source, False)
-    else:
-        S.obs_source_set_enabled(away_indicator_source, True)
-        S.obs_source_set_enabled(home_indicator_source, True)
-
-    S.obs_source_release(away_indicator_source)
-    S.obs_source_release(home_indicator_source)
 
 def add_pressed(props, prop):
     getimage.add_rosters()
@@ -574,9 +481,15 @@ def add_pressed(props, prop):
     S.obs_data_release(settings)
 
 def refresh_pressed(props, prop):
-    getimage.new_event = 1
-    getimage.dir_scan()
-    getimage.update_images()
+    url_liveGames = 'https://api.projectrio.app//populate_db/ongoing_game/'
+    
+    liveGames_json = requests.get(url_liveGames).json()["ongoing_games"]
+
+    recent_live_games = {}
+
+    for game in liveGames_json:
+        if int(game['start_time']) > (time.time() - 60*30):
+            recent_live_games[f'{game['away_player']} @ {game['home_player']}'] = game
 
 def remove_pressed(props, prop):
     source = S.obs_get_source_by_name(getimage.home_group)
@@ -621,16 +534,11 @@ def left_text_allignment(props, prop):
 
 def script_properties():
     props = S.obs_properties_create()
-    #S.obs_properties_add_button(props, 'refreshbutton', 'Refresh HUD', refresh_pressed)
-    S.obs_properties_add_bool(props, '_pause', 'Pause')
+    S.obs_properties_add_button(props, 'refreshgames', 'Refresh Games', refresh_pressed)
+    S.obs_properties_add_list(props, '_live_games', 'Live Games:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+
     S.obs_properties_add_button(props, '_add_button', 'Add', add_pressed)
     S.obs_properties_add_button(props, '_removebutton', 'Remove', remove_pressed)
-
-    OS_list = S.obs_properties_add_list(props, '_OS_list', 'HUD File Path:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
-    S.obs_property_list_add_string(OS_list, 'Custom', 'custom')
-    S.obs_property_list_add_string(OS_list, 'Windows Default Path', 'windows')
-    S.obs_property_list_add_string(OS_list, 'MacOS Default Path', 'macOS')
-    file_path_input = S.obs_properties_add_text(props, '_path', 'HUD File Path:', S.OBS_TEXT_DEFAULT)
 
     roster_layout = S.obs_properties_add_list(props, '_roster_layout', 'Roster Layout:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(roster_layout, 'Horizontal', 'horizontal')
@@ -647,31 +555,10 @@ def script_properties():
 
     font_property = S.obs_properties_add_font(props, '_player_font', 'Player Font:')
 
-    S.obs_properties_add_bool(props, '_indicator', 'Remove Indicators')
-
-    S.obs_properties_add_bool(props, '_visible', 'Automatically make visible:')
-
-    S.obs_property_set_modified_callback(OS_list, OS_callback)
     S.obs_property_set_modified_callback(roster_layout, layout_callback)
     S.obs_property_set_modified_callback(font_property, font_callback)
 
     return props
-
-def OS_callback(props, prop, settings):
-    if S.obs_data_get_string(settings, '_OS_list') == 'windows':
-        current_path = str(os.path.realpath(__file__))
-        HUD_Path = current_path.split('\\')[0] + '/' + current_path.split('\\')[1] + '/' + current_path.split('\\')[2] + '/Documents/Project Rio/HudFiles/decoded.hud.json'
-        S.obs_data_set_string(settings, '_path', HUD_Path)
-        S.obs_property_set_visible(S.obs_properties_get(props, "_path"), False)
-    elif S.obs_data_get_string(settings, '_OS_list') == 'macOS':
-        current_path = str(os.path.realpath(__file__))
-        HUD_Path = '/'+current_path.split('/', 3)[1] + '/' + current_path.split('/', 3)[2] + '/' + 'Library/Application Support/Project Rio/HudFiles/decoded.hud.json'
-        S.obs_data_set_string(settings, '_path', HUD_Path)
-        S.obs_property_set_visible(S.obs_properties_get(props, "_path"), False)
-    else:
-        S.obs_property_set_visible(S.obs_properties_get(props, "_path"), True)
-
-    return True
 
 def layout_callback(props, prop, settings):
     if S.obs_data_get_string(settings, '_roster_layout') == 'horizontal':
