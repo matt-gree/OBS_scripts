@@ -111,7 +111,7 @@ class rosterimages:
         
         self.recent_live_games = {}
         for game in liveGames_json:
-            if int(game['start_time']) > (time.time() - 60*60*30): # 30 Minutes
+            if int(game['start_time']) > (time.time() - 60*60*0.5): # 30 Minutes
                 self.recent_live_games[f"{game['away_player']} @ {game['home_player']}"] = game
 
     #Used when reverting from the captains only layout
