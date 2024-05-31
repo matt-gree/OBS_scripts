@@ -6,6 +6,8 @@ import TeamNameAlgo
 import requests
 import time
 import RioHudLib
+import threading
+import RioStatsConverter
 
 def script_description():
     return 'Mario Baseball Team HUD Version 1.5 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
@@ -68,9 +70,9 @@ class rosterimages:
         self.away_player = ''
 
         self.addons_image_dict = {
-            'Away Logo': {'Image': '', 'Location': S.vec2(), 'Scale Vector': S.vec2(), 'Relative Position': 1,
+            'Away Logo': {'Image': '', 'Location': S.vec2(), 'Scale Vector': S.vec2(), 'Relative Position': 0,
                                'Small Scale': 0, 'Large Scale': 0, 'Group': self.away_group},
-            'Home Logo': {'Image': '', 'Location': S.vec2(), 'Relative Position': 1,
+            'Home Logo': {'Image': '', 'Location': S.vec2(), 'Relative Position': 0,
                                'Small Scale': 0, 'Large Scale': 0, 'Scale Vector': S.vec2(), 'Group': self.home_group}
         }
 
@@ -99,6 +101,18 @@ class rosterimages:
                 2] + '/Documents/Project Rio/HudFiles/decoded.hud.json' '''
         else:
             self.platform = 'Unknown'
+
+        self.recent_live_games = {}
+
+    def refesh_games_list(self):
+        url_liveGames = 'https://api.projectrio.app//populate_db/ongoing_game/'
+    
+        liveGames_json = requests.get(url_liveGames).json()['ongoing_games']
+        
+        self.recent_live_games = {}
+        for game in liveGames_json:
+            if int(game['start_time']) > (time.time() - 60*60*30): # 30 Minutes
+                self.recent_live_games[f"{game['away_player']} @ {game['home_player']}"] = game
 
     #Used when reverting from the captains only layout
     def enable_roster_images(self):
@@ -174,41 +188,37 @@ class rosterimages:
                 S.obs_sceneitem_group_add_item(home_group,
                                                S.obs_scene_find_source(self.scene, self.roster_image_list[i][0]))
 
-    def get_team_rosters_from_RW(self):
-        self.away_player = hud_data.player(0)
-        self.home_player = hud_data.player(1)
+    def get_team_rosters_from_RW(self, game_key):
+        selected_game = self.recent_live_games[game_key]
+        self.away_player = selected_game['away_player']
+        self.home_player = selected_game['home_player']
+            
+        for i in range(9):
+            char_string = f'away_roster_{i}_char'
+            self.roster_image_list[i][2] = RioStatsConverter.char_id(selected_game[char_string]).replace(' (', '()')
+            self.roster_image_list[i][1] = 0
+            if i == selected_game['away_captain']:
+                self.roster_image_list[i][1] = 1
 
-        away_roster = hud_data.roster(0)
-        home_roster = hud_data.roster(1)
-
-        for player in away_roster:
-            self.roster_image_list[player][1] = away_roster[player]['captain']
-            self.roster_image_list[player][2] = away_roster[player]['char_id']
-
-        for player in home_roster:
-            self.roster_image_list[player+9][1] = home_roster[player]['captain']
-            self.roster_image_list[player+9][2] = home_roster[player]['char_id']
-
-        self.away_captain_index = hud_data.captain_index(0)
-        self.home_captain_index = hud_data.captain_index(1) + 9
-        
-        self.roster_image_list[self.away_captain_index][1] = 0
-        self.roster_image_list[self.home_captain_index-9][1] = 1
-        self.roster_image_list[self.home_captain_index][1] = 0
-        self.roster_image_list[self.away_captain_index+9][1] = 1
+        for i in range(9):
+            char_string = f'home_roster_{i}_char'
+            self.roster_image_list[i+9][2] = RioStatsConverter.char_id(selected_game[char_string]).replace(' (', '()')
+            self.roster_image_list[i+9][1] = 0
+            if i == selected_game['home_captain']:
+                self.roster_image_list[i+9][1] = 1
 
         self.away_roster = [element[2] for element in self.roster_image_list[:9]]
         self.home_roster = [element[2] for element in self.roster_image_list[9:]]
 
-        self.addons_image_dict['Away Logo']['Image'] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[self.home_captain_index-9][2])
-        self.addons_image_dict['Home Logo']['Image'] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[self.away_captain_index+9][2])
+        print(self.away_roster)
+        print(self.roster_image_list[selected_game['away_captain']][2])
+        print(self.home_roster)
+        print(self.roster_image_list[selected_game['home_captain']][2])
 
-        return True
+        self.addons_image_dict['Away Logo']['Image'] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[selected_game['away_captain']][2])
+        self.addons_image_dict['Home Logo']['Image'] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[selected_game['home_captain']+9][2])
 
     def update_images(self):
-        if (self.new_event == 0):
-            return self.current_event_num
-
         for image in self.roster_image_list:
             settings = S.obs_data_create()
             S.obs_data_set_string(settings, 'file', str(images_directory) + str(image[2]) + '.png')
@@ -455,7 +465,7 @@ def script_load(settings):
     visible_bool = S.obs_data_get_bool(settings, '_visible')
 
     getimage.new_event = 1
-    getimage.dir_scan()
+    getimage.refesh_games_list()
 
     print(getimage.scene)
 
@@ -472,24 +482,37 @@ def script_update(settings):
 def add_pressed(props, prop):
     getimage.add_rosters()
     getimage.new_event = 1
-    getimage.dir_scan()
     getimage.update_images()
     print(getimage.roster_image_list)
-
     settings = S.obs_data_create()
     layout_callback(props, prop, settings)
     S.obs_data_release(settings)
 
 def refresh_pressed(props, prop):
-    url_liveGames = 'https://api.projectrio.app//populate_db/ongoing_game/'
+    # Define a function to run the refresh_games_list method in a separate thread
+    def refresh_in_thread():
+        getimage.refesh_games_list()
+        getimage.update_images()
+        update_games_list()
+        print('Updated')
+        return True
     
-    liveGames_json = requests.get(url_liveGames).json()["ongoing_games"]
+    # Start a new thread
+    refresh_thread = threading.Thread(target=refresh_in_thread)
+    refresh_thread.start()
 
-    recent_live_games = {}
+def update_games_list():
+    global props
+    live_games = S.obs_properties_get(props, '_live_games')
+    S.obs_property_list_clear(live_games)
 
-    for game in liveGames_json:
-        if int(game['start_time']) > (time.time() - 60*30):
-            recent_live_games[f'{game['away_player']} @ {game['home_player']}'] = game
+    S.obs_property_list_add_string(live_games, 'Select Team', 'selectteam')
+    for game in getimage.recent_live_games.keys():
+        S.obs_property_list_add_string(live_games, str(game), str(game))
+
+    settings = S.obs_data_create()
+    S.obs_properties_apply_settings(props, settings)
+    S.obs_data_release(settings)
 
 def remove_pressed(props, prop):
     source = S.obs_get_source_by_name(getimage.home_group)
@@ -533,9 +556,14 @@ def left_text_allignment(props, prop):
     getimage.alignment(getimage.home_player_text_source, 9)
 
 def script_properties():
+
+    global props
     props = S.obs_properties_create()
-    S.obs_properties_add_button(props, 'refreshgames', 'Refresh Games', refresh_pressed)
-    S.obs_properties_add_list(props, '_live_games', 'Live Games:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+    # S.obs_properties_add_button(props, 'refreshgames', 'Refresh Games', refresh_pressed)
+    live_games = S.obs_properties_add_list(props, '_live_games', 'Live Games:', S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
+    
+    for game in getimage.recent_live_games.keys():
+        S.obs_property_list_add_string(live_games, str(game), str(game))
 
     S.obs_properties_add_button(props, '_add_button', 'Add', add_pressed)
     S.obs_properties_add_button(props, '_removebutton', 'Remove', remove_pressed)
@@ -555,10 +583,17 @@ def script_properties():
 
     font_property = S.obs_properties_add_font(props, '_player_font', 'Player Font:')
 
+    S.obs_property_set_modified_callback(live_games, game_select_callback)
     S.obs_property_set_modified_callback(roster_layout, layout_callback)
     S.obs_property_set_modified_callback(font_property, font_callback)
 
     return props
+
+def game_select_callback(props, prop, settings):
+    if S.obs_data_get_string(settings, '_live_games') in ['Select Team', 'selectteam', '']:
+        return True
+    getimage.get_team_rosters_from_RW(S.obs_data_get_string(settings, '_live_games'))
+    getimage.update_images()
 
 def layout_callback(props, prop, settings):
     if S.obs_data_get_string(settings, '_roster_layout') == 'horizontal':
