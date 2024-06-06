@@ -114,8 +114,8 @@ class rosterimages:
         self.recent_live_games = {}
         self.recent_live_games["Select Game"] = test_data
         for game in liveGames_json:
-            if int(game['start_time']) > (time.time() - 60*30): # 30 Minutes
-                self.recent_live_games[f"{game['away_player']} @ {game['home_player']} {datetime.fromtimestamp(game['start_time']).strftime('%H:%M:%S')}"] = game
+            if int(game['start_time']) > (time.time() - 60*60*0.5): # 30 Minutes
+                self.recent_live_games[f"{game['away_player']} @ {game['home_player']}"] = game
 
     #Used when reverting from the captains only layout
     def enable_roster_images(self):
