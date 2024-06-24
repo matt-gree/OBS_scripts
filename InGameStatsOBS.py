@@ -5,6 +5,7 @@ import platform as plt
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 import time
+import threading
 import re
 
 # If you run this on a mac and get an SSL error, run the following code in Termianl:
@@ -274,25 +275,29 @@ class pitcherstats:
             print(url_home)
             print(url_away)
 
-        #check if stats were found for each player.
-        self.web_home_statsFound = False
-        self.web_away_statsFound = False
-        try:
-            self.web_data_home = json.loads(urlopen(url_home).read())
-            self.web_home_statsFound = True   
-        except:
+        def make_api_call():
+            #check if stats were found for each player.
             self.web_home_statsFound = False
-        
-        try:
-            self.web_data_away = json.loads(urlopen(url_away).read())
-            self.web_away_statsFound = True    
-        except:
             self.web_away_statsFound = False
-        self.calledWebInd = True
-        
-        print("Home stats found:", self.web_home_statsFound)
-        print("Away stats found:", self.web_away_statsFound)
+            try:
+                self.web_data_home = json.loads(urlopen(url_home).read())
+                self.web_home_statsFound = True   
+            except:
+                self.web_home_statsFound = False
+            
+            try:
+                self.web_data_away = json.loads(urlopen(url_away).read())
+                self.web_away_statsFound = True    
+            except:
+                self.web_away_statsFound = False
+            self.calledWebInd = True
 
+            print("Home stats found:", self.web_home_statsFound)
+            print("Away stats found:", self.web_away_statsFound)
+
+        api_call_thread = threading.Thread(target=make_api_call)
+        api_call_thread.start()
+        
     def parse_web_stats(self):
         if self.debugMode:
             print("parse web stats")
