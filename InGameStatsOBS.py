@@ -6,7 +6,9 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 import time
 import threading
-import re
+
+import sys
+print(sys.version)
 
 # If you run this on a mac and get an SSL error, run the following code in Termianl:
 # /Applications/Python\ 3.10/Install\ Certificates.command
@@ -156,16 +158,6 @@ class pitcherstats:
         if self.debugMode:
             print("flip_teams")
 
-        #flip hud stats
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_combined_stats_text"), self.pitching_stats_loc)
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_combined_stats_text"), self.batting_stats_loc)
-
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_combined_stats_text"), self.pitching_stats_loc)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "batter_combined_stats_text"), self.batting_stats_loc)
-
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_combined_stats_text"), self.pitching_stats_loc)
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_combined_stats_text"), self.batting_stats_loc)
-
         #flip web stats
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batter_summary_stats_text"), self.web_pitching_stats_loc)
         S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitcher_summary_stats_text"), self.web_batting_stats_loc)
@@ -255,7 +247,7 @@ class pitcherstats:
                 self.mode_names.append(comm['name'])
 
     
-    def get_web_stats(self):
+    def get_web_stats(self, threading=True):
         if self.debugMode:
             print("get web stats")
 
@@ -268,8 +260,8 @@ class pitcherstats:
         else:
             mode_url_addition = "&tag=" + web_stat_mode
 
-        url_home = url_base + "&by_char=1&username=" + self.home_player + mode_url_addition
-        url_away = url_base + "&by_char=1&username=" + self.away_player + mode_url_addition
+        url_home = f'{url_base}&by_char=1&username={self.home_player}{mode_url_addition}&exclude_fielding=1'
+        url_away = f'{url_base}&by_char=1&username={self.away_player}{mode_url_addition}&exclude_fielding=1'
         
         if self.debugMode:
             print(url_home)
@@ -295,8 +287,12 @@ class pitcherstats:
             print("Home stats found:", self.web_home_statsFound)
             print("Away stats found:", self.web_away_statsFound)
 
-        api_call_thread = threading.Thread(target=make_api_call)
-        api_call_thread.start()
+        # make_api_call()
+        if threading:
+            api_call_thread = threading.Thread(target=make_api_call)
+            api_call_thread.start()
+        else:
+            make_api_call()
         
     def parse_web_stats(self):
         if self.debugMode:
@@ -437,9 +433,12 @@ class pitcherstats:
 
         if (visible_bool is True) and (self.current_event_num[0] != '0') and (self.game_start == True):
             S.timer_remove(check_for_updates)
-            self.get_web_stats()
-            self.set_visible()
-            print("stats visible")
+            def visible_threading():
+                self.get_web_stats(threading=False)
+                self.set_visible()
+            api_call_thread = threading.Thread(target=visible_threading)
+            api_call_thread.start()
+            print("fetching stats and making visible")
             self.game_start = False
             S.timer_add(check_for_updates, 1000)
 
@@ -521,89 +520,6 @@ class pitcherstats:
             self.flip_teams()
             self.half_inning_old = str(hud_data["Half Inning"])
 
-    def stat_output_create(self):
-        #to do: edit to make the strings within this function, and let the other functions just grab the totals.
-
-        b_custom_stats_list = []
-        b_custom_stats_list.append("Batter: " + str(self.b_h_batter))
-        self.b_stats_string = ""
-        b_custom_stats_list.append("Season Stats:")
-        b_custom_stats_list.append("AVG: " + str('{0:.3f}'.format(float(self.b_t_avg))))
-        #b_custom_stats_list.append("Hits: " + str(self.b_t_hits))
-        if self.b_t_hr != 0: b_custom_stats_list.append("Season HRs: " + str(self.b_t_hr))
-        for i in range(len(self.BATTER_HUD_STATS_LIST)):
-            if self.BATTER_HUD_STATS_LIST[i] != 0:
-                if i == 0:
-                    b_custom_stats_list.append("Current Game: ")
-                    b_custom_stats_list.append(str(self.b_h_hits) + ' for ' + str(self.b_h_at_bats))
-                # if i == 1:
-                # b_custom_stats_list.append("Hits: " + str(self.b_h_hits))
-                if i == 2:
-                    single = " Single" if self.b_h_singles == 1 else " Singles"
-                    b_custom_stats_list.append(str(self.b_h_singles) + single)
-                if i == 3:
-                    double = " Double" if self.b_h_doubles == 1 else " Doubles"
-                    b_custom_stats_list.append(str(self.b_h_doubles) + double)
-                if i == 4:
-                    triple = " Triple" if self.b_h_triples == 1 else " Triples"
-                    b_custom_stats_list.append(str(self.b_h_triples) + triple)
-                if i == 5:
-                    homerun = " Home Run" if self.b_h_homeruns == 1 else " Home Runs"
-                    b_custom_stats_list.append(str(self.b_h_homeruns) + homerun)
-                if i == 6:
-                    bunt = " Successful Bunt" if self.b_h_successful_bunts == 1 else " Successful Bunts"
-                    b_custom_stats_list.append(str(self.b_h_successful_bunts) + bunt)
-                if i == 7:
-                    sacfly = " Sac Fly" if self.b_h_sac_flys == 1 else " Sac Flies"
-                    b_custom_stats_list.append(str(self.b_h_sac_flys) + sacfly)
-                if i == 8:
-                    strikeout = " Strikeout" if self.b_h_strikeouts == 1 else " Strikeouts"
-                    b_custom_stats_list.append(str(self.b_h_strikeouts) + strikeout)
-                if i == 9:
-                    walk = " Walk" if self.b_h_walks == 1 else " Walks"
-                    b_custom_stats_list.append(str(self.b_h_walks) + walk)
-                if i == 10:
-                    hbp = " HBP" if self.b_h_HBP == 1 else " HBPs"
-                    b_custom_stats_list.append(str(self.b_h_HBP) + hbp)
-                if i == 11:
-                    b_custom_stats_list.append(str(self.b_h_RBI) + " RBI")
-                if i == 12:
-                    steal = " Steal" if self.b_h_steals == 1 else " Steals"
-                    b_custom_stats_list.append(str(self.b_h_steals) + steal)
-                if i == 13:
-                    starhit = " Star Hit" if self.b_h_star_hits == 1 else " Star Hits"
-                    b_custom_stats_list.append(str(self.b_h_star_hits) + starhit)
-
-        for line in b_custom_stats_list:
-            self.b_stats_string += line + "\n"
-
-        p_seasonAvg_stat_string = self.p_t_stats_string 
-        p_game_stat_string = f'Pitcher: {self.p_h_pitcher} \n Season Stats:\n ERA: {self.p_t_ERA:.1f}\n Opp AVG: {self.p_t_oppAvg:.3f} \n Game Stats:\n'
-        for line in self.p_hud_stats_string[1:]:
-            p_game_stat_string += line + "\n"
-
-        self.p_combined_text_output = p_game_stat_string
-
-
-    def stat_output_update_display(self):
-        b_source = S.obs_get_source_by_name("batter_combined_stats_text")
-        if b_source is not None:
-            settings = S.obs_data_create()
-            S.obs_data_set_string(settings, "text", self.b_stats_string)
-            S.obs_source_update(b_source, settings)
-            S.obs_data_release(settings)
-            S.obs_source_release(b_source)
-        S.obs_source_release(b_source)
-
-        p_source = S.obs_get_source_by_name("pitcher_combined_stats_text")
-        if p_source is not None:
-            settings = S.obs_data_create()
-            S.obs_data_set_string(settings, "text", self.p_combined_text_output)
-            S.obs_source_update(p_source, settings)
-            S.obs_data_release(settings)
-            S.obs_source_release(p_source)
-        S.obs_source_release(p_source)
-
     def summary_stats_display(self):
         source = S.obs_get_source_by_name("batter_summary_stats_text")
         settings = S.obs_data_create()
@@ -622,49 +538,6 @@ class pitcherstats:
         if self.debugMode:
             print(self.b_t_stats_string)
             print(self.p_t_stats_string)
-
-    def custom_stats(self):
-        p_custom_stats_list = []
-        if self.p_h_pitcher != "First Event":
-            p_custom_stats_list.append("Pitcher: " + str(self.p_h_pitcher))
-        p_stats_string = ""
-        p_stats_list = S.obs_data_get_string(globalsettings, "_pitching_stats").split(";")
-        for item in p_stats_list:
-            if item == "Batters Faced" or item == "1" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Batters Faced: " + str(self.p_h_batters_faced))
-            if item == "Runs Allowed" or item == "2" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Runs Allowed: " + str(self.p_h_runs_allowed))
-            if item == "Earned Runs" or item == "3" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Earned Runs: " + str(self.p_h_runs_allowed))
-            if item == "Walks" or item == "4" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Walks: " + str(self.p_h_walks))
-            if item == "HBP" or item == "5" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("HBP: " + str(self.p_h_hbp))
-            if item == "Hits Allowed" or item == "6" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Hits Allowed: " + str(self.p_h_hits))
-            if item == "HRs Allowed" or item == "7" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("HRs Allowed: " + str(self.p_h_hrs))
-            if item == "Pitch Count" or item == "8" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Pitch Count: " + str(self.p_h_pitches_thrown))
-            if item == "Stamina" or item == "9" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Stamina: " + str(self.p_h_stamina))
-            if item == "Strikeouts" or item == "10" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Strikeouts: " + str(self.p_h_strikeouts))
-            if item == "Outs Pitched" or item == "11" and self.p_h_pitcher != "First Event":
-                p_custom_stats_list.append("Outs Pitched: " + str(self.p_h_outs))
-
-        for line in p_custom_stats_list:
-            p_stats_string += line + "\n"
-
-        #to be used in the combined stat code
-        self.p_hud_stats_string = p_custom_stats_list
-
-        source = S.obs_get_source_by_name("pitcher_stats_text")
-        settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", p_stats_string)
-        S.obs_source_update(source, settings)
-        S.obs_data_release(settings)
-        S.obs_source_release(source)
 
 def script_load(settings):
 
@@ -686,19 +559,12 @@ def script_load(settings):
     getstats.dir_scan()
 
     getstats.summary_stats()
-    
 
 def check_for_updates():
    if pause_bool == False:
         getstats.dir_scan()
         getstats.summary_stats()
-        getstats.custom_stats()
         getstats.summary_stats_display()
-        
-
-        #new - eventually delete the other displays
-        getstats.stat_output_create()
-        getstats.stat_output_update_display()
 
 def script_update(settings):
     current_scene = S.obs_frontend_get_current_scene()
@@ -718,36 +584,7 @@ def script_description():
     return "Mario Baseball Pitcher Stats\n" \
            "OBS interface by MattGree \n" \
            "Thanks to the Rio Devs for developing the HUD files  \n" \
-           "Donations are welcomed! \n" \
-           "Pitching Stats Options: \n" \
-           "1. Batters Faced;   " \
-           "2. Runs Allowed;    " \
-           "3. Earned Runs; \n" \
-           "4. Walks;   " \
-           "5. HBP;   " \
-           "6. Hits Allowed;   " \
-           "7. HRs Allowed; \n" \
-           "8. Pitch Count;   " \
-           "9. Stamina;   " \
-           "10. Strikeouts;   " \
-           "11. Outs Pitched   \n" \
-           "Batting Stats Options: \n" \
-           "1. At Bats;   " \
-           "2. Hits;    " \
-           "3. Singles;   " \
-           "4. Doubles;   " \
-           "5. Triples;   " \
-           "6. Home Runs;   \n" \
-           "7. Sucessful Bunts;   " \
-           "8. Sac Flys;   " \
-           "9. Strikeouts;   " \
-           "10. Walks;   " \
-           "11. HBP;   \n" \
-           "12. RBI;   " \
-           "13. Steals;   " \
-           "14. Star Hits;   \n" \
-           "Enter the numbers of stats you wish displayed, seperated by a ;" \
-
+           "Support me on YouTube! \n" \
 
 def add_pressed(props, prop):
     getstats.add_pitching_stats()
@@ -769,45 +606,6 @@ def add_summary_pressed(props, prop):
     getstats.parse_web_stats()
     getstats.summary_stats()
     getstats.summary_stats_display()
-
-def toggle_stat_display_pressed(props, prop):
-    #code source to be added or removed when this button is pressed
-    if getstats.debugMode:
-        print("toggle combined stats")
-
-    current_scene = S.obs_frontend_get_current_scene()
-    getstats.scene = S.obs_scene_from_source(current_scene)
-    S.obs_source_release(current_scene)
-
-    #check if the sources already exist.
-    Batter_Combined_Stats_Source = S.obs_scene_find_source(getstats.scene,'batter_combined_stats_text')
-    Pitcher_Combined_Stats_Source = S.obs_scene_find_source(getstats.scene,'pitcher_combined_stats_text')
-
-    #batting text box
-    if Batter_Combined_Stats_Source is None: #source doesn't exist, so create
-        settings = S.obs_data_create()
-        if getstats.platform == 'MacOS':
-            Batter_Combined_Stats_Source = S.obs_source_create("text_ft2_source", 'batter_combined_stats_text', settings, None)
-        else:
-            Batter_Combined_Stats_Source = S.obs_source_create("text_gdiplus", 'batter_combined_stats_text', settings, None)
-        S.obs_scene_add(getstats.scene, Batter_Combined_Stats_Source)
-        S.obs_source_release(Batter_Combined_Stats_Source)
-        S.obs_data_release(settings)
-    else: #source exists, so delete
-        S.obs_sceneitem_remove(Batter_Combined_Stats_Source)
-
-    #pitching text box
-    if Pitcher_Combined_Stats_Source is None: #source doesn't exist, so create
-        settings = S.obs_data_create()
-        if getstats.platform == 'MacOS':
-            Pitcher_Combined_Stats_Source = S.obs_source_create("text_ft2_source", 'pitcher_combined_stats_text', settings, None)
-        else:
-            Pitcher_Combined_Stats_Source = S.obs_source_create("text_gdiplus", 'pitcher_combined_stats_text', settings, None)
-        S.obs_scene_add(getstats.scene, Pitcher_Combined_Stats_Source)
-        S.obs_source_release(Pitcher_Combined_Stats_Source)
-        S.obs_data_release(settings)    
-    else: #source exists, so delete
-        S.obs_sceneitem_remove(Pitcher_Combined_Stats_Source)
     
 def flip_teams(props, prop):
     getstats.flip_teams()
@@ -815,15 +613,8 @@ def flip_teams(props, prop):
 def script_properties():
     props = S.obs_properties_create()
     S.obs_properties_add_bool(props, "_pause", "Pause")
-    S.obs_properties_add_text(props, "_pitching_stats", "Pitching Stats", S.OBS_TEXT_DEFAULT)
-    S.obs_properties_add_text(props, "_batting_stats", "Batting Stats", S.OBS_TEXT_DEFAULT)
-
-    S.obs_properties_add_button(props, "_add_button", "Add Game Stats", add_pressed)
-    S.obs_properties_add_button(props, "_removebutton", "Remove Game Stats", remove_pressed)
 
     S.obs_properties_add_button(props, "_addSummaryStatsButton", "Add Summary Stats", add_summary_pressed)
-
-    S.obs_properties_add_button(props, "_toggleStatOutputButton", "Toggle Stat Display", toggle_stat_display_pressed)
 
     OS_list = S.obs_properties_add_list(props, "_OS_list", "OS:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     S.obs_property_list_add_string(OS_list, "Custom", "custom")
@@ -836,7 +627,6 @@ def script_properties():
     #add dropdown for modes to filter web stats
     web_mode_list = S.obs_properties_add_list(props, "_web_mode_list", "Mode for Web Stats:", S.OBS_COMBO_TYPE_LIST, S.OBS_COMBO_FORMAT_STRING)
     
-
     #if the list of modes was already fetched, don't do it again.
     # global getstats
     # if getstats.got_modes == False:
@@ -845,13 +635,13 @@ def script_properties():
 
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
-    S.obs_property_list_add_string(web_mode_list, 'Stars Off Season 7', 'StarsOffSeason7')
-    S.obs_property_list_add_string(web_mode_list, 'Stars On Season 7', 'StarsOnHazardousSeason7')
-    S.obs_property_list_add_string(web_mode_list, 'Big Balla Season 7', 'BigBallaRandomsSeason7')
-    S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Season 7', 'StarsOffHazardousSeason7')
-    S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Randoms Season 7', 'StarsOffHazardousRandomsSeason7')
-    S.obs_property_list_add_string(web_mode_list, 'Stars Off Mega 7', 'StarsOffMegaSeason7')
-    S.obs_property_list_add_string(web_mode_list, 'NNL Season 5', 'NNLSeason5')
+    S.obs_property_list_add_string(web_mode_list, 'S9 Stars Off Hazards', 'S9SuperstarsOffHazards')
+    # S.obs_property_list_add_string(web_mode_list, 'Stars On Season 7', 'StarsOnHazardousSeason7')
+    # S.obs_property_list_add_string(web_mode_list, 'Big Balla Season 7', 'BigBallaRandomsSeason7')
+    # S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Season 7', 'StarsOffHazardousSeason7')
+    # S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Randoms Season 7', 'StarsOffHazardousRandomsSeason7')
+    # S.obs_property_list_add_string(web_mode_list, 'Stars Off Mega 7', 'StarsOffMegaSeason7')
+    # S.obs_property_list_add_string(web_mode_list, 'NNL Season 5', 'NNLSeason5')
     # for i in range(len(getstats.mode_names)):
     # S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
 
