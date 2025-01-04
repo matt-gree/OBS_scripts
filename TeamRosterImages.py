@@ -3,10 +3,10 @@ import os
 import json
 import platform as plt
 import TeamNameAlgo
-import RioHudLib
+from project_rio_lib.stat_file_parser import HudObj
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 1.5 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
+    return 'Mario Baseball Team HUD Version 2.0.0 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
 
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
@@ -188,7 +188,7 @@ class rosterimages:
         with open(hud_file_path) as f:
             hud_data = json.load(f)
 
-        hud_data = RioHudLib.hudObj(hud_data)
+        hud_data = HudObj(hud_data)
         self.inning_end = hud_data.inning_end()
 
         # Return if the event hasn't changed
