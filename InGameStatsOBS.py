@@ -7,8 +7,7 @@ from urllib.request import urlopen, Request, HTTPError
 import time
 import threading
 import ssl
-
-import RioHudLib
+from project_rio_lib.stat_file_parser import HudObj
 
 # If you run this on a mac and get an SSL error, run the following code in Termianl:
 # /Applications/Python\ 3.10/Install\ Certificates.command
@@ -24,9 +23,7 @@ class PitcherStats:
         self.batter = str()
 
         self.current_event_num = -1
-
-        self.half_inning_old = 0
-        self.half_inning_cur = 0
+        self.current_half_inning = 0
 
         current_scene = S.obs_frontend_get_current_scene()
         self.scene = S.obs_scene_from_source(current_scene)
@@ -117,10 +114,13 @@ class PitcherStats:
             'Innings Pitched': 0
         }
 
-        self.new_event = 0
+        self.is_new_event = 1
 
         self.pitching_string = str()
         self.batting_string = str()
+
+        self.away_string = str()
+        self.home_string = str()
 
         self.home_player = str()
         self.away_player = str()
@@ -135,7 +135,6 @@ class PitcherStats:
 
         self.debugMode = True
 
-
         if str(plt.platform()).lower()[0] == 'm':
             self.platform = 'MacOS'
         elif str(plt.platform()).lower()[0] == 'w':
@@ -148,14 +147,14 @@ class PitcherStats:
             print("flip_teams")
 
         #flip web stats
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batting_summary_stats_text"), self.web_pitching_stats_loc)
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitching_summary_stats_text"), self.web_batting_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "away_summary_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "home_summary_stats_text"), self.web_batting_stats_loc)
 
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "pitching_summary_stats_text"), self.web_pitching_stats_loc)
-        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "batting_summary_stats_text"), self.web_batting_stats_loc)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "home_summary_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_set_pos(S.obs_scene_find_source_recursive(self.scene, "away_summary_stats_text"), self.web_batting_stats_loc)
 
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "pitching_summary_stats_text"), self.web_pitching_stats_loc)
-        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "batting_summary_stats_text"), self.web_batting_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "home_summary_stats_text"), self.web_pitching_stats_loc)
+        S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(self.scene, "away_summary_stats_text"), self.web_batting_stats_loc)
 
     def add_summary_stats(self):
         if self.debugMode:
@@ -166,16 +165,16 @@ class PitcherStats:
         S.obs_source_release(current_scene)
 
         #check if the sources already exist.
-        old_bSummary_source = S.obs_scene_find_source(self.scene,'batting_summary_stats_text')
-        old_pSummary_source = S.obs_scene_find_source(self.scene,'pitching_summary_stats_text')
+        old_bSummary_source = S.obs_scene_find_source(self.scene,'away_summary_stats_text')
+        old_pSummary_source = S.obs_scene_find_source(self.scene,'home_summary_stats_text')
 
         #Add batting text box
         if old_bSummary_source is None: # only create if it doesn't already exist
             settings = S.obs_data_create()
             if self.platform == 'MacOS':
-                batting_summary_Stats_Text = S.obs_source_create("text_ft2_source", 'batting_summary_stats_text', settings, None)
+                batting_summary_Stats_Text = S.obs_source_create("text_ft2_source", 'away_summary_stats_text', settings, None)
             else:
-                batting_summary_Stats_Text = S.obs_source_create("text_gdiplus", 'batting_summary_stats_text', settings, None)
+                batting_summary_Stats_Text = S.obs_source_create("text_gdiplus", 'away_summary_stats_text', settings, None)
             S.obs_scene_add(self.scene, batting_summary_Stats_Text)
             S.obs_source_release(batting_summary_Stats_Text)
             S.obs_data_release(settings)
@@ -184,9 +183,9 @@ class PitcherStats:
         if old_pSummary_source is None: # only create if it doesn't already exist
             settings = S.obs_data_create()
             if self.platform == 'MacOS':
-                pitching_summary_Stats_Text = S.obs_source_create("text_ft2_source", 'pitching_summary_stats_text', settings, None)
+                pitching_summary_Stats_Text = S.obs_source_create("text_ft2_source", 'home_summary_stats_text', settings, None)
             else:
-                pitching_summary_Stats_Text = S.obs_source_create("text_gdiplus", 'pitching_summary_stats_text', settings, None)
+                pitching_summary_Stats_Text = S.obs_source_create("text_gdiplus", 'home_summary_stats_text', settings, None)
             S.obs_scene_add(self.scene, pitching_summary_Stats_Text)
             S.obs_source_release(pitching_summary_Stats_Text)
             S.obs_data_release(settings)   
@@ -263,9 +262,6 @@ class PitcherStats:
     def parse_web_stats(self):
         if self.debugMode:
             print("parse web stats")
-        
-        #assign batter and pitcher stat variables
-        #home
 
         def get_web_data(team, character, action):
             if team == 0:
@@ -273,7 +269,7 @@ class PitcherStats:
             elif team == 1:
                 return self.web_data_home.get('Stats', {}).get(character, {}).get(action, {})
 
-        if self.half_inning_cur == 0:
+        if self.current_half_inning == 0:
             web_data_pitcher = get_web_data(1, self.pitcher, 'Pitching')
             web_data_batter = get_web_data(0, self.batter, 'Batting')
         else:
@@ -314,8 +310,8 @@ class PitcherStats:
                 self.pitching_web[key] = 0
 
     def set_visible(self):
-        S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, "batting_summary_stats_text"), True)
-        S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, "pitching_summary_stats_text"), True)
+        S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, "away_summary_stats_text"), True)
+        S.obs_sceneitem_set_visible(S.obs_scene_find_source_recursive(self.scene, "home_summary_stats_text"), True)
 
     def summary_stats(self):
         #updates web stat variables
@@ -327,6 +323,7 @@ class PitcherStats:
         self.batting_summary['Singles'] = self.batting_hud_file['Singles'] + self.batting_web['Singles']
         self.batting_summary['Doubles'] = self.batting_hud_file['Doubles'] + self.batting_web['Doubles']
         self.batting_summary['Triples'] = self.batting_hud_file['Triples'] + self.batting_web['Triples']
+        self.batting_summary['Home Runs'] = self.batting_hud_file['Home Runs'] + self.batting_web['Home Runs']
         self.batting_summary['AVG'] = 0 if self.batting_summary['At Bats'] == 0 else self.batting_summary['Hits'] / self.batting_summary['At Bats']
         self.batting_summary['SLG'] = 0 if self.batting_summary['At Bats'] == 0 else (
             self.batting_summary['Singles'] +
@@ -334,7 +331,6 @@ class PitcherStats:
             3 * self.batting_summary['Triples'] +
             4 * self.batting_summary['Home Runs']
         ) / self.batting_summary['At Bats']
-        self.batting_summary['Home Runs'] = self.batting_hud_file['Home Runs'] + self.batting_web['Home Runs']
         self.batting_summary['RBI'] = self.batting_hud_file['RBI'] + self.batting_web['RBI']
         self.batting_summary['Strikeouts'] = self.batting_hud_file['Strikeouts'] + self.batting_web['Strikeouts']
         self.batting_summary['Walks'] = self.batting_hud_file['Walks'] + self.batting_web['Walks']
@@ -360,26 +356,40 @@ class PitcherStats:
             print(self.batting_summary)
             print(self.pitching_summary)
 
+        
+        if self.current_half_inning == 0:
+            self.away_string = self.batting_string
+            self.home_string = self.pitching_string
+        else:
+            self.away_string = self.pitching_string
+            self.home_string = self.batting_string
+
     def dir_scan(self):
         hud_file_path = S.obs_data_get_string(globalsettings, '_path')
         hud_file_path = hud_file_path.replace("\\", "/")
         
         if not os.path.isfile(hud_file_path):
-            return ""
+            return
 
         with open(hud_file_path) as f:
             hud_data = json.load(f)
         
-        hud_data_object = RioHudLib.hudObj(hud_data)
+        hud_data_object = HudObj(hud_data)
+        
+        print(self.current_event_num)
+        print(hud_data_object.event_number)
+        print(self.is_new_event)
 
-        # Return if the event hasn't changed
+
         if (self.current_event_num == hud_data_object.event_number):
-            if (self.new_event != 1):
+            if (self.is_new_event != 1):
                 return False
-
-        self.new_event = 1
+            
+        self.is_new_event = 0
 
         self.current_event_num = hud_data['Event Num']
+        self.current_half_inning = hud_data["Half Inning"]
+
 
         self.home_player = hud_data["Home Player"]
         self.away_player = hud_data["Away Player"]
@@ -403,12 +413,10 @@ class PitcherStats:
 
             S.timer_add(check_for_updates, 1000)
 
-        teamInt = hud_data['Half Inning']
-        teamStr = "Away" if teamInt == 1 else "Home"
+        teamStr = "Away" if self.current_half_inning == 1 else "Home"
         pitcher_id = hud_data['Pitcher Roster Loc']
 
         p_team_roster_str = teamStr + " Roster " + str(pitcher_id)
-        print(p_team_roster_str)
 
         # Vars to hold data for characters and teams(player)
         self.pitcher = hud_data[p_team_roster_str]["CharID"]
@@ -424,9 +432,7 @@ class PitcherStats:
         self.pitching_hud_file['Strikeouts'] = hud_data[p_team_roster_str]["Defensive Stats"]["Strikeouts"]
         self.pitching_hud_file['Outs Pitched'] = hud_data[p_team_roster_str]["Defensive Stats"]["Outs Pitched"]
 
-        self.half_inning_cur = hud_data["Half Inning"]
-
-        b_teamStr = "Away" if self.half_inning_cur == 0 else "Home"
+        b_teamStr = "Away" if self.current_half_inning == 0 else "Home"
         self.batting_hud_file['Roster Location'] = hud_data["Batter Roster Loc"]
 
         b_team_roster_str = b_teamStr + " Roster " + str(self.batting_hud_file['Roster Location'])
@@ -447,21 +453,20 @@ class PitcherStats:
         self.batting_hud_file['Steals'] = hud_data[b_team_roster_str]["Offensive Stats"]["Bases Stolen"]
         self.batting_hud_file['Star Hits'] = hud_data[b_team_roster_str]["Offensive Stats"]["Star Hits"]
 
-        if str(self.half_inning_old) != str(hud_data["Half Inning"]):
-            self.flip_teams()
-            self.half_inning_old = str(hud_data["Half Inning"])
+        self.summary_stats()
+            
 
     def summary_stats_display(self):
-        source = S.obs_get_source_by_name("batting_summary_stats_text")
+        source = S.obs_get_source_by_name("away_summary_stats_text")
         settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", self.batting_string)
+        S.obs_data_set_string(settings, "text", self.away_string)
         S.obs_source_update(source, settings)
         S.obs_data_release(settings)
         S.obs_source_release(source)
         
-        source = S.obs_get_source_by_name("pitching_summary_stats_text")
+        source = S.obs_get_source_by_name("home_summary_stats_text")
         settings = S.obs_data_create()
-        S.obs_data_set_string(settings, "text", self.pitching_string)
+        S.obs_data_set_string(settings, "text", self.home_string)
         S.obs_source_update(source, settings)
         S.obs_data_release(settings)
         S.obs_source_release(source)
@@ -490,7 +495,7 @@ def script_load(settings):
 def check_for_updates():
     if pause_bool is False:
         getstats.dir_scan()
-        getstats.summary_stats()
+        # getstats.summary_stats()
         getstats.summary_stats_display()
 
 def script_update(settings):
@@ -508,7 +513,7 @@ def script_update(settings):
     visible_bool = S.obs_data_get_bool(settings, '_visible')
 
 def script_description():
-    return "Mario Baseball Pitcher Stats\n" \
+    return "Mario Baseball Stats Version 2.0.0\n" \
            "OBS interface by MattGree \n" \
            "Thanks to the Rio Devs for developing the HUD files  \n" \
            "Support me on YouTube! \n" \
@@ -557,11 +562,10 @@ def script_properties():
 
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
-    S.obs_property_list_add_string(web_mode_list, 'S9 Stars Off Hazards', 'S9SuperstarsOffHazards')
-    # S.obs_property_list_add_string(web_mode_list, 'Stars On Season 7', 'StarsOnHazardousSeason7')
-    # S.obs_property_list_add_string(web_mode_list, 'Big Balla Season 7', 'BigBallaRandomsSeason7')
-    # S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Season 7', 'StarsOffHazardousSeason7')
-    # S.obs_property_list_add_string(web_mode_list, 'Stars Off Hazards Randoms Season 7', 'StarsOffHazardousRandomsSeason7')
+    S.obs_property_list_add_string(web_mode_list, 'S10 Stars Off', 'S10SuperstarsOff')
+    S.obs_property_list_add_string(web_mode_list, 'S10 Stars Off Hazards', 'S10SuperstarsOffHazards')
+    S.obs_property_list_add_string(web_mode_list, 'S10 Stars On', 'S10SuperstarsOn')
+    S.obs_property_list_add_string(web_mode_list, 'S10 Big Balla', 'S10BigBalla')
     S.obs_property_list_add_string(web_mode_list, 'MBA CL', 'MBAChampionsLeague2024')
     S.obs_property_list_add_string(web_mode_list, 'NNL Season 6', 'NNLSeason6')
     # for i in range(len(getstats.mode_names)):
