@@ -6,7 +6,7 @@ import TeamNameAlgo
 from project_rio_lib.stat_file_parser import HudObj
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 2.0.0 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
+    return 'Mario Baseball Team HUD Version 2.0.1 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
 
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
@@ -108,8 +108,11 @@ class rosterimages:
     def enable_roster_images(self):
         for i in range(0, len(self.roster_image_list)):
             source = S.obs_get_source_by_name(self.roster_image_list[i][0])
-            S.obs_source_set_enabled(source, True)
-            S.obs_source_release(source)
+            if source:
+                S.obs_source_set_enabled(source, True)
+                S.obs_source_release(source)
+            else:
+                S.script_log(S.LOG_WARNING, "Source not found: SourceName")
 
     #Used for auto-enableing the rosters after event 0a
     def set_visible(self):
@@ -359,16 +362,6 @@ class rosterimages:
                 item['Large Scale'] = item['Small Scale'] * self.captain_size_multiplier
             S.obs_source_release(source)
 
-    def alignment(self, source_name, align_int):
-        # align_int = 4 for center top, 8 for center bottom, = 9 for bottom left
-        source = S.obs_get_source_by_name(source_name)
-        scene_item = S.obs_scene_find_source(getimage.scene, source_name)
-        info = S.obs_transform_info()
-        S.obs_sceneitem_get_info(scene_item, info)
-        info.alignment = align_int
-        S.obs_sceneitem_set_info(scene_item, info)
-        S.obs_source_release(source)
-
     def set_position_straight(self, direction):
         self.enable_roster_images()
         self.pre_position_update()
@@ -573,11 +566,6 @@ def add_pressed(props, prop):
     layout_callback(props, prop, settings)
     S.obs_data_release(settings)
 
-def refresh_pressed(props, prop):
-    getimage.new_event = 1
-    getimage.dir_scan()
-    getimage.update_images()
-
 def remove_pressed(props, prop):
     source = S.obs_get_source_by_name(getimage.home_group)
     S.obs_source_remove(source)
@@ -611,17 +599,8 @@ def flip_teams(props, prop):
     S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, getimage.home_player_text_source), getimage.home_player_loc)
     S.obs_sceneitem_get_pos(S.obs_scene_find_source_recursive(getimage.scene, getimage.away_player_text_source), getimage.away_player_loc)
 
-def center_text_allignment(props, prop):
-    getimage.alignment(getimage.away_player_text_source, 4)
-    getimage.alignment(getimage.home_player_text_source, 4)
-
-def left_text_allignment(props, prop):
-    getimage.alignment(getimage.away_player_text_source, 9)
-    getimage.alignment(getimage.home_player_text_source, 9)
-
 def script_properties():
     props = S.obs_properties_create()
-    #S.obs_properties_add_button(props, 'refreshbutton', 'Refresh HUD', refresh_pressed)
     S.obs_properties_add_bool(props, '_pause', 'Pause')
     S.obs_properties_add_button(props, '_add_button', 'Add', add_pressed)
     S.obs_properties_add_button(props, '_removebutton', 'Remove', remove_pressed)
@@ -642,18 +621,10 @@ def script_properties():
 
     S.obs_properties_add_button(props, '_flipteams', 'Flip Team Locations', flip_teams)
 
-    S.obs_properties_add_button(props, '_centerallignment', 'Text Allignment Center', center_text_allignment)
-    S.obs_properties_add_button(props, '_leftallignment', 'Text Allignment Left', left_text_allignment)
-
-    font_property = S.obs_properties_add_font(props, '_player_font', 'Player Font:')
-
-    S.obs_properties_add_bool(props, '_indicator', 'Remove Indicators')
-
     S.obs_properties_add_bool(props, '_visible', 'Automatically make visible:')
 
     S.obs_property_set_modified_callback(OS_list, OS_callback)
     S.obs_property_set_modified_callback(roster_layout, layout_callback)
-    S.obs_property_set_modified_callback(font_property, font_callback)
 
     return props
 
@@ -675,34 +646,15 @@ def OS_callback(props, prop, settings):
 
 def layout_callback(props, prop, settings):
     if S.obs_data_get_string(settings, '_roster_layout') == 'horizontal':
-        left_text_allignment(props, prop)
         getimage.set_position_straight('Horizontal')
     if S.obs_data_get_string(settings, '_roster_layout') == 'vertical':
-        center_text_allignment(props, prop)
         getimage.set_position_straight('Vertical')
     if S.obs_data_get_string(settings, '_roster_layout') == '2x4':
-        left_text_allignment(props, prop)
         getimage.set_position_2x4('Horizontal')
     if S.obs_data_get_string(settings, '_roster_layout') == '2x4vertical':
-        center_text_allignment(props, prop)
         getimage.set_position_2x4('Vertical')
     if S.obs_data_get_string(settings, '_roster_layout') == 'captainshorizontal':
-        left_text_allignment(props, prop)
         getimage.set_position_captains('Horizontal')
     if S.obs_data_get_string(settings, '_roster_layout') == 'captainsvertical':
-        center_text_allignment(props, prop)
         getimage.set_position_captains('Vertical')
-    return True
-
-def font_callback(props, prop, settings):
-    S.obs_data_set_obj(settings, 'font', S.obs_data_get_obj(settings, '_player_font'))
-    source = S.obs_get_source_by_name(getimage.away_player_text_source)
-    S.obs_data_set_bool(settings, 'outline', False)
-    S.obs_source_update(source, settings)
-    S.obs_source_release(source)
-
-    source = S.obs_get_source_by_name(getimage.home_player_text_source)
-    S.obs_source_update(source, settings)
-    S.obs_source_release(source)
-
     return True

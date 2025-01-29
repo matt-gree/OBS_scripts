@@ -513,7 +513,7 @@ def script_update(settings):
     visible_bool = S.obs_data_get_bool(settings, '_visible')
 
 def script_description():
-    return "Mario Baseball Stats Version 2.0.0\n" \
+    return "Mario Baseball Stats Version 2.0.1\n" \
            "OBS interface by MattGree \n" \
            "Thanks to the Rio Devs for developing the HUD files  \n" \
            "Support me on YouTube! \n" \
@@ -562,12 +562,12 @@ def script_properties():
 
     #add modes to the dropdown
     S.obs_property_list_add_string(web_mode_list, "All", "all")
-    S.obs_property_list_add_string(web_mode_list, 'S10 Stars Off', 'S10SuperstarsOff')
-    S.obs_property_list_add_string(web_mode_list, 'S10 Stars Off Hazards', 'S10SuperstarsOffHazards')
-    S.obs_property_list_add_string(web_mode_list, 'S10 Stars On', 'S10SuperstarsOn')
-    S.obs_property_list_add_string(web_mode_list, 'S10 Big Balla', 'S10BigBalla')
+    S.obs_property_list_add_string(web_mode_list, 'S11 Stars Off', 'S11SuperstarsOff')
+    S.obs_property_list_add_string(web_mode_list, 'S11 Stars Off Hazards', 'S11SuperstarsOffHazards')
+    S.obs_property_list_add_string(web_mode_list, 'S11 Stars On', 'S11SuperstarsOn')
+    S.obs_property_list_add_string(web_mode_list, 'S11 Big Balla', 'S11BigBalla')
     S.obs_property_list_add_string(web_mode_list, 'MBA CL', 'MBAChampionsLeague2024')
-    S.obs_property_list_add_string(web_mode_list, 'NNL Season 6', 'NNLSeason6')
+    S.obs_property_list_add_string(web_mode_list, 'NPSS21', 'NetplaySuperstars21')
     # for i in range(len(getstats.mode_names)):
     # S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
 
