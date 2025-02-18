@@ -7,7 +7,7 @@ from urllib.request import urlopen, Request, HTTPError
 import time
 import threading
 import ssl
-from project_rio_lib.stat_file_parser import HudObj
+from pyRio.stat_file_parser import HudObj
 
 # If you run this on a mac and get an SSL error, run the following code in Termianl:
 # /Applications/Python\ 3.10/Install\ Certificates.command
@@ -568,6 +568,9 @@ def script_properties():
     S.obs_property_list_add_string(web_mode_list, 'S11 Big Balla', 'S11BigBalla')
     S.obs_property_list_add_string(web_mode_list, 'MBA CL', 'MBAChampionsLeague2024')
     S.obs_property_list_add_string(web_mode_list, 'NPSS21', 'NetplaySuperstars21')
+    S.obs_property_list_add_string(web_mode_list, 'PJFriendsClassic', 'PJandFriendsTeamClassic2')
+    S.obs_property_list_add_string(web_mode_list, 'NNLS7Training', 'NNLS7Training')
+    S.obs_property_list_add_string(web_mode_list, 'NNLSeason7', 'NNLSeason7')
     # for i in range(len(getstats.mode_names)):
     # S.obs_property_list_add_string(web_mode_list, getstats.mode_names[i], re.sub(r'[^a-zA-Z0-9]', '', getstats.mode_names[i]))
 

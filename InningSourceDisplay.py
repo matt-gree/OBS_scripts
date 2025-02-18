@@ -2,7 +2,7 @@ import obspython as S
 import os
 import json
 import platform as plt
-import RioHudLib
+from pyRio.stat_file_parser import HudObj
 
 #def script_defaults(settings):
 
@@ -56,7 +56,7 @@ class SourceDisplay:
         with open(hud_file_path) as f:
             hud_data = json.load(f)
 
-        hud_data = RioHudLib.hudObj(hud_data)
+        hud_data = HudObj(hud_data)
 
         # Return if the event hasn't changed
         if (self.current_event_num == hud_data.event_number):

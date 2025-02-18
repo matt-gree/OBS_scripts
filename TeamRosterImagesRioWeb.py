@@ -2,16 +2,16 @@ import obspython as S
 import os
 import json
 import platform as plt
-import TeamNameAlgo
 import requests
 import time
 import threading
-from project_rio_lib.lookup import Lookup, LookupDicts
+from pyRio.team_name_algo import team_name
+from pyRio.lookup import Lookup, LookupDicts
 
 test_data =  {'away_captain': 1, 'away_player': 'Away Player', 'away_roster_0_char': 1, 'away_roster_1_char': 1, 'away_roster_2_char': 1, 'away_roster_3_char': 1, 'away_roster_4_char': 1, 'away_roster_5_char': 1, 'away_roster_6_char': 1, 'away_roster_7_char': 1, 'away_roster_8_char': 1, 'away_score': 0, 'away_stars': 5, 'batter': 7, 'half_inning': 0, 'home_captain': 0, 'home_player': 'Home Player', 'home_roster_0_char': 0, 'home_roster_1_char': 0, 'home_roster_2_char': 0, 'home_roster_3_char': 0, 'home_roster_4_char': 0, 'home_roster_5_char': 0, 'home_roster_6_char': 0, 'home_roster_7_char': 0, 'home_roster_8_char': 0, 'home_score': 0, 'home_stars': 5, 'inning': 4, 'outs': 1, 'pitcher': 1, 'runner_on_first': True, 'runner_on_second': True, 'runner_on_third': True, 'stadium_id': 4, 'start_time': 1717140581, 'tag_set': 74}
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 2.0.0 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
+    return 'Mario Baseball Team HUD Version 2.1.0 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
 
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
@@ -217,8 +217,8 @@ class rosterimages:
         print(self.home_roster)
         print(self.roster_image_list[selected_game['home_captain']][2])
 
-        self.addons_image_dict['Away Logo']['Image'] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[selected_game['away_captain']][2])
-        self.addons_image_dict['Home Logo']['Image'] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[selected_game['home_captain']+9][2])
+        self.addons_image_dict['Away Logo']['Image'] = team_name(self.away_roster, self.roster_image_list[selected_game['away_captain']][2])
+        self.addons_image_dict['Home Logo']['Image'] = team_name(self.home_roster, self.roster_image_list[selected_game['home_captain']+9][2])
 
     def update_images(self):
         for image in self.roster_image_list:

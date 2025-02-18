@@ -2,11 +2,11 @@ import obspython as S
 import os
 import json
 import platform as plt
-import TeamNameAlgo
-from project_rio_lib.stat_file_parser import HudObj
+from pyRio.team_name_algo import team_name
+from pyRio.stat_file_parser import HudObj
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 2.0.1 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
+    return 'Mario Baseball Team HUD Version 2.1.0 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
 
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
@@ -244,8 +244,8 @@ class rosterimages:
         self.away_roster = [element[2] for element in self.roster_image_list[:9]]
         self.home_roster = [element[2] for element in self.roster_image_list[9:]]
 
-        self.addons_image_dict['Away Logo']['Image'] = TeamNameAlgo.Team_Name(self.away_roster, self.roster_image_list[self.home_captain_index-9][2])
-        self.addons_image_dict['Home Logo']['Image'] = TeamNameAlgo.Team_Name(self.home_roster, self.roster_image_list[self.away_captain_index+9][2])
+        self.addons_image_dict['Away Logo']['Image'] = team_name(self.away_roster, self.roster_image_list[self.home_captain_index-9][2])
+        self.addons_image_dict['Home Logo']['Image'] = team_name(self.home_roster, self.roster_image_list[self.away_captain_index+9][2])
 
         return True
 
