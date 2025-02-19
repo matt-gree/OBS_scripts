@@ -6,7 +6,7 @@ from pyRio.team_name_algo import team_name
 from pyRio.stat_file_parser import HudObj
 
 def script_description():
-    return 'Mario Baseball Team HUD Version 2.1.0 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
+    return 'Mario Baseball Team HUD Version 2.1.1 \nOBS interface by MattGree, \nThanks to PeacockSlayer (and Rio Dev team) for developing the HUD files  \nSupport me on YouTube.com/MattGree'
 
 
 images_directory = str(os.path.dirname(__file__)) + '/Images/'
